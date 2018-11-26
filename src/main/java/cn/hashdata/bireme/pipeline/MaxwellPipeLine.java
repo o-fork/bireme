@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.logging.log4j.LogManager;
 
@@ -86,7 +87,11 @@ public class MaxwellPipeLine extends KafkaPipeLine {
     @Override
     public boolean transform(ConsumerRecord<String, String> change, Row row)
         throws BiremeException {
-      MaxwellRecord record = new MaxwellRecord(change.value());
+      String value=  change.value();
+      if(StringUtils.isBlank(value)){
+          return false;
+      }
+      MaxwellRecord record = new MaxwellRecord(value);
 
       if (filter(record)) {
         return false;
@@ -126,7 +131,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
 
       public MaxwellRecord(String changeValue) {
         JsonParser jsonParser = new JsonParser();
-        JsonObject value = (JsonObject) jsonParser.parse(changeValue);
+        JsonObject value = jsonParser.parse(changeValue).getAsJsonObject();
 
         this.dataSource = getPipeLineName();
         this.database = value.get("database").getAsString();

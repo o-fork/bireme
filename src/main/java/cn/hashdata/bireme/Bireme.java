@@ -9,6 +9,7 @@ import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -123,7 +124,8 @@ public class Bireme implements Daemon {
       }
 
       strArray = fullname.split("\\.");
-      cxt.tablesInfo.put(fullname, new Table(strArray[1], tableInfoMap, conn));
+      logger.error("fullname:"+fullname+",------strArray:"+ Arrays.toString(strArray)+",---tableInfoMap:"+tableInfoMap+",---cxt.tablesInfo:"+cxt.tablesInfo);
+      cxt.tablesInfo.put(fullname, new Table(strArray[0],strArray[1], tableInfoMap, conn));
     }
 
     try {

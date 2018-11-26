@@ -452,7 +452,7 @@ public class ChangeLoader implements Callable<Long> {
   }
 
   private String getTemporaryTableName() {
-    return mappedTable.replace('.', '_');
+    return mappedTable.replace('.', '_').replaceAll("\"","");
   }
 
   private void createTemporaryTable(Connection conn) throws BiremeException {
@@ -463,7 +463,7 @@ public class ChangeLoader implements Callable<Long> {
       conn.createStatement().executeUpdate(sql);
       conn.commit();
     } catch (SQLException e) {
-      throw new BiremeException("Fail to create tmporary table.", e);
+      throw new BiremeException("Fail to create tmporary table.--------sql:"+sql, e);
     }
   }
 }

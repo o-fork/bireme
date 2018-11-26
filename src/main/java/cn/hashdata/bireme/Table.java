@@ -43,7 +43,7 @@ public class Table {
    * @param conn      Connection to the database
    * @throws BiremeException - Wrap and throw Exception which cannot be handled.
    */
-  public Table(String tableName, Map<String, List<String>> tableMap, Connection conn)
+  public Table(String dbName,String tableName, Map<String, List<String>> tableMap, Connection conn)
       throws BiremeException {
     this.ncolumns = 0;
     this.columnName = new ArrayList<String>();
@@ -64,7 +64,7 @@ public class Table {
 
       statement = conn.createStatement();
 
-      String queryTableInfo = "select * from public." + tableName + " where 1=2";
+      String queryTableInfo = "select * from "+dbName+"." + tableName + " where 1=2";
       rs = statement.executeQuery(queryTableInfo);
       rsMetaData = rs.getMetaData();
       this.ncolumns = rsMetaData.getColumnCount();
