@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+# Copyright HashData. All Rights Reserved.
+NAME="bireme"
+DESC="bireme service"
+BINDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOPDIR="$(cd "$(dirname "${BINDIR}")" && pwd)"
+
+EXEC="$(which jsvc)"
+
+if [ -z "${EXEC}" ]; then
+  echo 'command "jsvc" is not found.' >&2
+  exit 1
+fi
+
+if [ -z "${JAVA_HOME}" ]; then
+  echo '"JAVA_HOME" is not set.' >&2
+  exit 1
+fi
+
+CLASS_PATH="${TOPDIR}/lib/*"
+
+CLASS="cn.hashdata.bireme.Bireme"
+
+CMD=$1
+
+shift
+
+ARGS="$*"
+PID="/tmp/$NAME.pid"
+
+# System.out writes to this file...
+LOG_OUT="${TOPDIR}/logs/$NAME.out"
+
+# System.err writes to this file...
+LOG_ERR="${TOPDIR}/logs/$NAME.err"
+
+HEAP_DUMP="${TOPDIR}/logs/$NAME.heapdump"
+
+LOG_GC="${TOPDIR}/logs/$NAME.gc"
+
+# See the following page for extensive details on setting
+# up the JVM to accept JMX remote management:
+# http://java.sun.com/javase/6/docs/technotes/guides/management/agent.html
+# by default we allow local JMX connections
+
+println() {
+  if [ "$CMD" = "start" ]
+  then
+    echo "$1" >&2
+  fi
+}
+
+if [ -z "$JXM_LOCALONLY" ]
+then
+    JXM_LOCALONLY=false
+fi
+
+if [ -z "$JMX_DISABLE" ] || [ "$JMX_DISABLE" = 'false' ]
+then
+  println "Bireme JMX enabled by default" >&2
+  if [ -z "$JMX_PORT" ]
+  then
+    JMX="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=$JXM_LOCALONLY"
+  else
+    if [ -z "$JMX_AUTH" ]
+    then
+      JMX_AUTH=false
+    fi
+    if [ -z "$JMX_SSL" ]
+    then
+      JMX_SSL=false
+    fi
+    if [ -z "$JMX_LOG4J" ]
+    then
+      JMX_LOG4J=true
+    fi
+    println "Bireme remote JMX Port set to $JMX_PORT" >&2
+    println "Bireme remote JMX authenticate set to $JMX_AUTH" >&2
+    println "Bireme remote JMX ssl set to $JMX_SSL" >&2
+    println "Bireme remote JMX log4j set to $JMX_LOG4J" >&2
+    JMX="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=$JMX_PORT -Dcom.sun.management.jmxremote.authenticate=$JMX_AUTH -Dcom.sun.management.jmxremote.ssl=$JMX_SSL -Dzookeeper.jmx.log4j.disable=$JMX_LOG4J"
+  fi
+else
+    println "JMX disabled by user request" >&2
+fi
+
+if [ "$MAX_HEAP" ]
+then
+  println "Bireme maximum heap size is ${MAX_HEAP}m" >&2
+  HEAP="-Xmx${MAX_HEAP}m"
+fi
+
+jsvc_exec() {
+  cd "${TOPDIR}" || exit 1
+    "${EXEC}" -cwd "${TOPDIR}" -home "${JAVA_HOME}" -cp "${CLASS_PATH}" \
+    ${JMX} ${HEAP} \
+    -Dlog4j.configurationFile=${TOPDIR}/etc/log4j2.xml \
+    -XX:+UseG1GC -XX:+UseStringDeduplication \
+    -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${HEAP_DUMP} \
+    -XX:-PrintGCDetails -XX:-PrintGCTimeStamps -XX:-UseGCLogFileRotation \
+    -XX:NumberOfGCLogFiles=2 -XX:GCLogFileSize=1024K -Xloggc:${LOG_GC} \
+    -jvm server -wait 60 -outfile "${LOG_OUT}" -errfile "${LOG_ERR}" \
+    -pidfile "${PID}" $1 "${CLASS}" ${ARGS}
+}
+
+case "${CMD}" in
+  start)
+    echo "Starting the $DESC..."
+
+    # Start the service
+    if ! jsvc_exec; then
+      echo "Failed to start $DESC"
+      exit 1
+    fi
+
+    echo "The $DESC has started."
+  ;;
+  stop)
+    if [ -f "$PID" ]; then
+      echo "Stopping the $DESC..."
+
+      # Stop the service
+      if ! jsvc_exec "-stop"; then
+        echo "Failed to stop $DESC"
+        exit 1
+      fi
+
+      echo "The $DESC has stopped."
+    else
+      echo "Daemon not running, no action taken"
+      exit 1
+    fi
+  ;;
+  restart)
+    if [ -f "$PID" ]; then
+      echo "Restarting the $DESC..."
+
+      # Stop the service
+      jsvc_exec "-stop"
+
+      # Start the service
+      if ! jsvc_exec; then
+	    echo "Failed to start $DESC"
+	    exit 1
+	  fi
+
+	  echo "The $DESC has restarted."
+    else
+      echo "Daemon not running, no action taken"
+      exit 1
+    fi
+      ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}" >&2
+    exit 1
+  ;;
+esac
