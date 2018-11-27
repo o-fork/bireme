@@ -23,6 +23,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.postgresql.copy.CopyManager;
@@ -321,7 +322,7 @@ public class ChangeLoader implements Callable<Long> {
 
       copyCount = copyResult.get();
     } catch (ExecutionException e) {
-      throw new BiremeException("Copy failed.", e.getCause());
+      throw new BiremeException("Copy failed.----------sql:"+sql, e.getCause());
     }
 
     if (temp != null) {
