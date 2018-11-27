@@ -110,7 +110,7 @@ public class Bireme implements Daemon {
 
     String[] strArray;
     Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
-
+    logger.error("---Connection-----------:"+conn.hashCode());
     try {
       tableInfoMap = GetPrimaryKeys.getPrimaryKeys(cxt.tableMap, conn);
     } catch (Exception e) {
@@ -167,6 +167,8 @@ public class Bireme implements Daemon {
         conns.add(conn);
         temporatyTables.put(conn, new HashSet<String>());
       }
+
+      logger.error("cxt.loaderConnections --- size:"+  conns.size());
     } catch (SQLException e) {
       for (Connection closeConn : temporatyTables.keySet()) {
         try {

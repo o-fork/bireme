@@ -115,8 +115,14 @@ public class ChangeLoader implements Callable<Long> {
         break;
       }
 
-      // get connection
-      conn = getConnection();
+      // get connection 重试三次，每次睡眠1.5秒
+      ConnectRetryEntry retryEntry=  RetryUtils.retryOnException(3, 1500, new Callable<ConnectRetryEntry>() {
+          @Override
+          public ConnectRetryEntry call() throws Exception {
+              return new ConnectRetryEntry(getConnection());
+          }
+      });
+      conn = retryEntry.getConnection();
       if (conn == null) {
         logger.debug("Unable to get Connection.");
         break;
@@ -179,6 +185,8 @@ public class ChangeLoader implements Callable<Long> {
    */
   protected Connection getConnection() throws BiremeException {
     Connection connection = cxt.loaderConnections.poll();
+
+      logger.error("getConnection-- cxt.loaderConnections --- size:"+  cxt.loaderConnections.size());
     if (connection == null) {
       String message = "Unable to get Connection.";
       logger.fatal(message);
