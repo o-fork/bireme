@@ -138,7 +138,7 @@ public class ChangeLoader implements Callable<Long> {
         try {
           conn.rollback();
           conn.close();
-        } catch (Exception ignore) {
+        } catch (SQLException ignore) {
           logger.error("Fail to roll back after load exception. Message: {}", e);
         }
         throw  new RuntimeException(e);
