@@ -427,9 +427,9 @@ public abstract class PipeLine implements Callable<PipeLine> {
         char c = data.charAt(i);
 
         switch (c) {
-          case 0:
+          case 0x00:
             logger.warn("illegal character 0x00, deleted.");
-            continue;
+            break;
           case QUOTE:
           case ESCAPE:
             fieldStringBuilder.append(ESCAPE);
