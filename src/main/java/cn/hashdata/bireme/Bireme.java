@@ -131,6 +131,7 @@ public class Bireme implements Daemon {
     try {
       conn.close();
     } catch (SQLException ignore) {
+        logger.error(ignore);
     }
 
     logger.info("Finish getting metadata of target tables from target database.");
@@ -161,6 +162,7 @@ public class Bireme implements Daemon {
         try {
           stmt.execute("set gp_autostats_mode = none;");
         } catch (SQLException ignore) {
+            logger.error(ignore);
         }
 
         conn.setAutoCommit(false);
@@ -170,10 +172,12 @@ public class Bireme implements Daemon {
 
       logger.error("cxt.loaderConnections --- size:"+  conns.size());
     } catch (SQLException e) {
+        logger.error(e);
       for (Connection closeConn : temporatyTables.keySet()) {
         try {
           closeConn.close();
         } catch (SQLException ignore) {
+            logger.error(ignore);
         }
       }
 
@@ -317,7 +321,7 @@ public class Bireme implements Daemon {
     try {
       closeConnections();
     } catch (SQLException e) {
-      logger.warn(e.getMessage());
+        logger.error(e);
     }
 
     logger.info("Bireme exit");
@@ -341,7 +345,7 @@ public class Bireme implements Daemon {
       logger.fatal("Stack Trace: ", e);
       System.err.println(e.getMessage());
       e.printStackTrace();
-      System.exit(1);
+//      System.exit(1);
     }
 
     try {
@@ -357,7 +361,7 @@ public class Bireme implements Daemon {
     try {
       closeConnections();
     } catch (SQLException e) {
-      logger.warn(e.getMessage());
+      logger.error(e);
     }
 
     logger.info("Bireme exit");

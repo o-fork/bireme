@@ -171,7 +171,7 @@ public class ChangeLoader implements Callable<Long> {
       try {
         task = head.get();
       } catch (ExecutionException e) {
-        throw new BiremeException("Merge task failed.\n", e.getCause());
+        throw new BiremeException("Merge task failed.\n", e);
       }
     }
 
@@ -285,6 +285,7 @@ public class ChangeLoader implements Callable<Long> {
         try {
           conn.rollback();
         } catch (SQLException ignore) {
+            logger.error(ignore);
         }
 
         optimisticMode = false;
@@ -331,7 +332,7 @@ public class ChangeLoader implements Callable<Long> {
 
       copyCount = copyResult.get();
     } catch (ExecutionException e) {
-      throw new BiremeException("Copy failed.----------sql:"+sql, e.getCause());
+      throw new BiremeException("Copy failed.----------sql:"+sql, e);
     }
 
     if (temp != null) {
@@ -434,6 +435,7 @@ public class ChangeLoader implements Callable<Long> {
         try {
           pipeIn.close();
         } catch (IOException ignore) {
+            logger.error(ignore);
         }
       }
     }
