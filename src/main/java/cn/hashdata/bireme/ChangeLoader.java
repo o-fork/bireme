@@ -131,6 +131,7 @@ public class ChangeLoader implements Callable<Long> {
       // Execute task and release connection. If failed, close the connection and abandon it.
       try {
         executeTask();
+        logger.info("----------------------------executeTask------------------------");
         releaseConnection();
       } catch (BiremeException e) {
         logger.error("Fail to execute task. Message: {}", e.getMessage());
@@ -208,6 +209,7 @@ public class ChangeLoader implements Callable<Long> {
    */
   protected void releaseConnection() {
     cxt.loaderConnections.offer(conn);
+    logger.info("----------------------------releaseConnection------------------------:"+cxt.loaderConnections.size());
     conn = null;
   }
 
