@@ -69,6 +69,7 @@ public class RetryUtils {
             } catch (Exception e) {
                 logger.info("retry on " + (i + 1) + " times v = " + (v == null ? null : v.getConnection()), e);
             }
+            logger.info("retry on " + (i + 1) + " times v = " + (v == null ? null : v.getConnection()));
             Thread.sleep(sleepMillis);
         }
         return v;

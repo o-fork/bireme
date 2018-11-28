@@ -122,7 +122,7 @@ public class ChangeLoader implements Callable<Long> {
               return new ConnectRetryEntry(getConnection());
           }
       });
-      conn = retryEntry.getConnection();
+      conn = retryEntry==null? null : retryEntry.getConnection();
       if (conn == null) {
         logger.debug("Unable to get Connection.");
         break;
@@ -186,8 +186,7 @@ public class ChangeLoader implements Callable<Long> {
    */
   protected Connection getConnection() throws BiremeException {
     Connection connection = cxt.loaderConnections.poll();
-
-      logger.error("getConnection-- cxt.loaderConnections --- size:"+  cxt.loaderConnections.size());
+    logger.info("getConnection-- cxt.loaderConnections --- 剩余size:"+  cxt.loaderConnections.size());
     if (connection == null) {
       String message = "Unable to get Connection.";
       logger.fatal(message);
@@ -209,7 +208,7 @@ public class ChangeLoader implements Callable<Long> {
    */
   protected void releaseConnection() {
     cxt.loaderConnections.offer(conn);
-    logger.info("----------------------------releaseConnection------------------------:"+cxt.loaderConnections.size());
+    logger.info("----------------------------releaseConnection----------------剩余size--------:"+cxt.loaderConnections.size());
     conn = null;
   }
 

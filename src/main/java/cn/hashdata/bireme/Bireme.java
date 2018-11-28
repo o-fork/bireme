@@ -124,7 +124,7 @@ public class Bireme implements Daemon {
       }
 
       strArray = fullname.split("\\.");
-      logger.error("fullname:"+fullname+",------strArray:"+ Arrays.toString(strArray)+",---tableInfoMap:"+tableInfoMap+",---cxt.tablesInfo:"+cxt.tablesInfo);
+      logger.info("fullname:"+fullname+",------strArray:"+ Arrays.toString(strArray)+",---tableInfoMap:"+tableInfoMap+",---cxt.tablesInfo:"+cxt.tablesInfo);
       cxt.tablesInfo.put(fullname, new Table(strArray[0],strArray[1], tableInfoMap, conn));
     }
 
