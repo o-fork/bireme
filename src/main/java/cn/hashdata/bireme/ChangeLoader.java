@@ -134,13 +134,13 @@ public class ChangeLoader implements Callable<Long> {
         logger.info("----------------------------executeTask------------------------");
         releaseConnection();
       } catch (BiremeException e) {
-        logger.error("Fail to execute task. Message: {}", e.getMessage());
+        logger.error("Fail to execute task. Message: {}", e);
 
         try {
           conn.rollback();
           conn.close();
         } catch (Exception ignore) {
-          logger.error("Fail to roll back after load exception. Message: {}", e.getMessage());
+          logger.error("Fail to roll back after load exception. Message: {}", e);
           throw e;
         }
         throw e;
