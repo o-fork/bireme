@@ -399,7 +399,7 @@ public abstract class PipeLine implements Callable<PipeLine> {
           data = "1970-02-01";
       }
       return data;
-    };
+    }
 
     /**
      * For Numeric type, {@code Transformer} need to decode the extracted string and transform it to
@@ -412,7 +412,7 @@ public abstract class PipeLine implements Callable<PipeLine> {
      */
     protected String decodeToNumeric(String data, int sqlType, int precision) {
       return data;
-    };
+    }
 
     /**
      * Add escape character to a data string.
@@ -427,7 +427,7 @@ public abstract class PipeLine implements Callable<PipeLine> {
         char c = data.charAt(i);
 
         switch (c) {
-          case 0x00:
+          case 0:
             logger.warn("illegal character 0x00, deleted.");
             continue;
           case QUOTE:
