@@ -135,13 +135,12 @@ public class ChangeLoader implements Callable<Long> {
         releaseConnection();
       } catch (BiremeException e) {
         logger.error("Fail to execute task. Message: {}", e);
-        try {
-          conn.rollback();
-          conn.close();
-        } catch (SQLException ignore) {
-          logger.error("Fail to roll back after load exception. Message: {}", e);
-        }
-        throw  new RuntimeException(e);
+          try {
+              conn.rollback();
+              conn.close();
+          } catch (SQLException e1) {
+              logger.error(e1);
+          }
       } finally {
         currentTask.destory();
         currentTask = null;
