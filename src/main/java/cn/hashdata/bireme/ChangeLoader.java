@@ -143,7 +143,7 @@ public class ChangeLoader implements Callable<Long> {
           logger.error("Fail to roll back after load exception. Message: {}", e);
           throw e;
         }
-        throw e;
+        throw  new RuntimeException(e);
 
       } finally {
         currentTask.destory();
