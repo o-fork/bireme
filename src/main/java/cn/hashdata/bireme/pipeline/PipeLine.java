@@ -395,6 +395,8 @@ public abstract class PipeLine implements Callable<PipeLine> {
     protected String decodeToTime(String data, int sqlType, int precision) {
       if("0000-00-00 00:00:00".equals(data)){
           data = "1970-02-01 00:00:00";
+      }else if("0000-00-00".equals(data)){
+          data = "1970-02-01";
       }
       return data;
     };
