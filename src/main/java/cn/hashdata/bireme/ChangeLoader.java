@@ -253,7 +253,7 @@ public class ChangeLoader implements Callable<Long> {
     String temporaryTableName = getTemporaryTableName();
 
     timerCTX = copyForDeleteTimer.time();
-    copyWorker(temporaryTableName, keyNames, delete);
+    copyWorker(temporaryTableName, keyNames, delete,"delete");
     timerCTX.stop();
 
     timerCTX = deleteTimer.time();
@@ -275,7 +275,7 @@ public class ChangeLoader implements Callable<Long> {
 
     timerCTX = copyForInsertTimer.time();
     try {
-      copyWorker(mappedTable, columnList, insertSet);
+      copyWorker(mappedTable, columnList, insertSet,"insert");
     } catch (BiremeException e) {
       if (e.getCause().getMessage().contains("duplicate key value") && optimisticMode) {
         try {
@@ -298,7 +298,7 @@ public class ChangeLoader implements Callable<Long> {
     timerCTX.stop();
   }
 
-  private Long copyWorker(String tableName, ArrayList<String> columnList, Set<String> tuples)
+  private Long copyWorker(String tableName, ArrayList<String> columnList, Set<String> tuples,String taskType)
       throws BiremeException, InterruptedException {
     Future<Long> copyResult;
     long copyCount = -1L;
@@ -314,7 +314,7 @@ public class ChangeLoader implements Callable<Long> {
 
     String sql = getCopySql(tableName, columnList);
     copyResult = copyThread.submit(new TupleCopyer(pipeIn, sql, conn));
-
+    logger.info("-copyWorker---------"+taskType+"---------sql:"+sql);
     try {
       tupleWriter(pipeOut, tuples);
     } catch (BiremeException e) {
@@ -334,7 +334,7 @@ public class ChangeLoader implements Callable<Long> {
     if (temp != null) {
       throw temp;
     }
-
+    logger.info("---------copyWorker------------------------lineCount:"+copyCount);
     return copyCount;
   }
 
