@@ -459,6 +459,7 @@ public class ChangeLoader implements Callable<Long> {
       try {
         pipeOut.close();
       } catch (IOException ignore) {
+          logger.error(ignore);
       }
     }
   }
