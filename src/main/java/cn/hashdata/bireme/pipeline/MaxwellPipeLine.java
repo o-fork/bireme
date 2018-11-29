@@ -117,6 +117,21 @@ public class MaxwellPipeLine extends KafkaPipeLine {
         }
       }
 
+      if (row.type == RowType.TABLE_ALTER){//新增，删除，修改 列与索引与 修改表名
+           row.pgSql = "";
+      }
+      if (row.type == RowType.TABLE_CREATE){//仅创建表
+          row.pgSql = "";
+      }
+      if (row.type == RowType.TABLE_DROP){//仅删除表
+          row.pgSql = "";
+      }
+      if (row.type == RowType.DATABASE_CREATE){//创建库
+          row.pgSql = "";
+      }
+      if (row.type == RowType.DATABASE_CREATE){//删除库
+          row.pgSql = "";
+      }
       return true;
     }
 
@@ -128,33 +143,55 @@ public class MaxwellPipeLine extends KafkaPipeLine {
       public RowType type;
       public JsonObject data;
       public JsonObject old;
+      public JsonObject def;//alter-table 时
+      public String sql;//alter-table 时
 
       public MaxwellRecord(String changeValue) {
         JsonParser jsonParser = new JsonParser();
         JsonObject value = jsonParser.parse(changeValue).getAsJsonObject();
-
+        String typeDb=  value.get("type").getAsString();
         this.dataSource = getPipeLineName();
         this.database = value.get("database").getAsString();
         this.table = value.get("table").getAsString();
         this.produceTime = value.get("ts").getAsLong() * 1000;
-        this.data = value.get("data").getAsJsonObject();
-
         if (value.has("old") && !value.get("old").isJsonNull()) {
-          this.old = value.get("old").getAsJsonObject();
+            this.old = value.get("old").getAsJsonObject();
+        }
+        if(value.has("data") && !value.get("data").isJsonNull()){
+            this.data = value.get("data").getAsJsonObject();
+        }
+        if(value.has("def") && !value.get("def").isJsonNull()){
+            this.def = value.get("def").getAsJsonObject();
+        }
+        if(value.has("sql") && !value.get("sql").isJsonNull()){
+            this.def = value.get("sql").getAsJsonObject();
         }
 
-        switch (value.get("type").getAsString()) {
+        switch (typeDb) {
           case "insert":
-            type = RowType.INSERT;
-            break;
-
+              type = RowType.INSERT;
+              break;
           case "update":
-            type = RowType.UPDATE;
-            break;
-
+              type = RowType.UPDATE;
+              break;
           case "delete":
-            type = RowType.DELETE;
-            break;
+              type = RowType.DELETE;
+              break;
+          case "table-drop":
+              type = RowType.TABLE_DROP;
+              break;
+          case "table-create":
+              type = RowType.TABLE_CREATE;
+              break;
+          case "table-alter":
+              type = RowType.TABLE_ALTER;
+              break;
+          case "database-create":
+              type = RowType.DATABASE_CREATE;
+              break;
+          case "database-drop":
+              type = RowType.DATABASE_DROP;
+              break;
         }
       }
 
