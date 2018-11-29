@@ -334,7 +334,7 @@ public class ChangeLoader implements Callable<Long> {
     if (temp != null) {
       throw temp;
     }
-    logger.info("---------copyWorker------------------------lineCount:"+copyCount);
+    logger.info("---------copyWorker------------------------copyTime:"+copyCount+"ms");
     return copyCount;
   }
 

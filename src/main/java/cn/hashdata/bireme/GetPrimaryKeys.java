@@ -73,7 +73,7 @@ public class GetPrimaryKeys {
       }
 
       if (table_map.size() != tableMap.size()) {
-        String message = "Greenplum table and MySQL table size are inconsistent!----prSql:"+prSql;
+        String message = "Greenplum table and MySQL table size are inconsistent!----prSql:"+prSql+" ,table_map:"+table_map.size()+",tableMap:"+tableMap.size();
         throw new BiremeException(message);
       } else {
         logger.info("MySQL、Greenplum table check completed, the state is okay！");
