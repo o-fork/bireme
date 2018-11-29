@@ -57,14 +57,15 @@ public class Table {
     ResultSetMetaData rsMetaData = null;
 
     try {
-      List<String> mapList = tableMap.get(tableName);
+      String fullTableName=dbName+"."+tableName;
+      List<String> mapList = tableMap.get(fullTableName);
       for (int i = 0; i < mapList.size(); i++) {
         this.keyNames.add(mapList.get(i));
       }
 
       statement = conn.createStatement();
 
-      String queryTableInfo = "select * from "+dbName+"." + tableName + " where 1=2";
+      String queryTableInfo = "select * from "+fullTableName+ " where 1=2";
       rs = statement.executeQuery(queryTableInfo);
       rsMetaData = rs.getMetaData();
       this.ncolumns = rsMetaData.getColumnCount();

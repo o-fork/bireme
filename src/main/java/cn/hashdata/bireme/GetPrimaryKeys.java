@@ -22,30 +22,23 @@ public class GetPrimaryKeys {
       HashMap<String, String> tableMap, Connection conn) throws Exception {
     Statement statement = null;
     ResultSet resultSet = null;
-//    ResultSet tableRs = null;
     Map<String, List<String>> table_map = new HashMap<>();
-    List<String> checkTableMap = new ArrayList<>();
     String[] strArray;
     StringBuilder sb = new StringBuilder();
     StringBuilder dbNameSb=new StringBuilder();
     dbNameSb.append("(");
     sb.append("(");
+    Set<String> dbNameSet=new HashSet<>();
     for (String fullname : tableMap.values()) {
       strArray = fullname.split("\\.");
       sb.append("'").append(strArray[1].replaceAll("\"","")).append("',");
-      dbNameSb.append("'").append(strArray[0]).append("',");
-
-      if(!checkTableMap.contains(strArray[1])){
-          checkTableMap.add(strArray[1]);
-      }else {
-          throw new BiremeException("-------重复的表名配置：tableInfo:"+fullname);
-      }
+      dbNameSet.add(strArray[0]);
     }
-
+    for(String db:dbNameSet){
+        dbNameSb.append("'").append(db).append("',");
+    }
     String tableList = sb.toString().substring(0, sb.toString().length() - 1) + ")";
     String dbNameList= dbNameSb.toString().substring(0,dbNameSb.toString().length()-1) + ")";
-//    String tableSql = "select tablename from pg_tables where schemaname='public' and tablename in "
-//        + tableList + "";
     String prSql = "SELECT NULL AS TABLE_CAT, "
         + "n.nspname  AS TABLE_SCHEM, "
         + "ct.relname AS TABLE_NAME, "
@@ -59,24 +52,23 @@ public class GetPrimaryKeys {
         + tableList + " AND i.indisprimary ORDER BY TABLE_NAME, pk_name, key_seq";
     try {
       statement = conn.createStatement();
-//      tableRs = statement.executeQuery(tableSql);
-
-//      while (tableRs.next()) {
-//        checkTableMap.add(tableRs.getString("tablename"));
-//      }
+      long startTime=System.currentTimeMillis();
       resultSet = statement.executeQuery(prSql);
+      logger.info("---------------execute------------------sql----------time:"+(System.currentTimeMillis() - startTime) +"ms");
       while (resultSet.next()) {
         String tableName = resultSet.getString("TABLE_NAME");
+        String dbName = resultSet.getString("TABLE_SCHEM");
         if(StringUtils.isNotBlank(tableName)){
             tableName = "\""+tableName+"\"";
         }
-        if (table_map.containsKey(tableName)) {
-          List<String> strings = table_map.get(tableName);
+        String fullTableName=dbName+"."+tableName;
+        if (table_map.containsKey(fullTableName)) {
+          List<String> strings = table_map.get(fullTableName);
           strings.add(resultSet.getString("COLUMN_NAME"));
         } else {
           List<String> multiPKList = new ArrayList<>();
           multiPKList.add(resultSet.getString("COLUMN_NAME"));
-          table_map.put(tableName, multiPKList);
+          table_map.put(fullTableName, multiPKList);
         }
       }
 
