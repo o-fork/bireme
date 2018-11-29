@@ -125,6 +125,12 @@ public class Bireme implements Daemon {
 
       strArray = fullname.split("\\.");
 //      logger.info("fullname:"+fullname+",------strArray:"+ Arrays.toString(strArray)+",---tableInfoMap:"+tableInfoMap+",---cxt.tablesInfo:"+cxt.tablesInfo);
+      /*
+       *Table 的参数。 配置文件中的 目标数据库数据。
+       * strArray[0]  库名：ttpai_boss_v1
+       * strArray[1]  表名："BOSS_ACCOUNT"   加上双引号的。
+       * tableInfoMap  ，查询目标数据库得到的，表名与主键的关系。如 {"ttpai_boss_v1." "BOSS_ACCOUNT" ":{id}}  注意表名有双引号
+       */
       cxt.tablesInfo.put(fullname, new Table(strArray[0],strArray[1], tableInfoMap, conn));
     }
 
