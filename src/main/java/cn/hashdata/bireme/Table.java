@@ -4,6 +4,9 @@
 
 package cn.hashdata.bireme;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -28,6 +31,8 @@ import java.util.List;
  * @author yuze
  */
 public class Table {
+
+  private static Logger logger = LogManager.getLogger("Bireme." + Table.class);
   public int ncolumns;
   public ArrayList<String> columnName;
   public HashMap<String, Integer> columnType;
@@ -81,6 +86,7 @@ public class Table {
       try {
         conn.close();
       } catch (SQLException ignore) {
+        logger.error("非阻碍性",ignore);
       }
       String message = "Could not get metadata for public. " + tableName + ".\n";
       throw new BiremeException(message, e);
