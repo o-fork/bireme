@@ -22,23 +22,24 @@ public class GetPrimaryKeys {
       HashMap<String, String> tableMap, Connection conn) throws Exception {
     Statement statement = null;
     ResultSet resultSet = null;
-    ResultSet tableRs = null;
+//    ResultSet tableRs = null;
     Map<String, List<String>> table_map = new HashMap<>();
     List<String> checkTableMap = new ArrayList<>();
     String[] strArray;
     StringBuilder sb = new StringBuilder();
+    StringBuilder dbNameSb=new StringBuilder();
+    dbNameSb.append("(");
     sb.append("(");
-
-    String dbName=null;
     for (String fullname : tableMap.values()) {
       strArray = fullname.split("\\.");
-      dbName = strArray[0];
       sb.append("'").append(strArray[1].replaceAll("\"","")).append("',");
+      dbNameSb.append("'").append(strArray[0]).append("',");
     }
 
     String tableList = sb.toString().substring(0, sb.toString().length() - 1) + ")";
-    String tableSql = "select tablename from pg_tables where schemaname='public' and tablename in "
-        + tableList + "";
+    String dbNameList= dbNameSb.toString().substring(0,dbNameSb.toString().length()-1) + ")";
+//    String tableSql = "select tablename from pg_tables where schemaname='public' and tablename in "
+//        + tableList + "";
     String prSql = "SELECT NULL AS TABLE_CAT, "
         + "n.nspname  AS TABLE_SCHEM, "
         + "ct.relname AS TABLE_NAME, "
@@ -48,16 +49,15 @@ public class GetPrimaryKeys {
         + "FROM pg_catalog.pg_class ct JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
         + "JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
         + "JOIN ( SELECT i.indexrelid, i.indrelid, i.indisprimary, information_schema._pg_expandarray(i.indkey) AS KEYS FROM pg_catalog.pg_index i) i ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
-        + "JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) WHERE TRUE AND n.nspname = '"+dbName+"' AND ct.relname in "
+        + "JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) WHERE TRUE AND n.nspname in "+dbNameList+" AND ct.relname in "
         + tableList + " AND i.indisprimary ORDER BY TABLE_NAME, pk_name, key_seq";
     try {
       statement = conn.createStatement();
-      tableRs = statement.executeQuery(tableSql);
+//      tableRs = statement.executeQuery(tableSql);
 
-      while (tableRs.next()) {
-        checkTableMap.add(tableRs.getString("tablename"));
-      }
-
+//      while (tableRs.next()) {
+//        checkTableMap.add(tableRs.getString("tablename"));
+//      }
       resultSet = statement.executeQuery(prSql);
       while (resultSet.next()) {
         String tableName = resultSet.getString("TABLE_NAME");
