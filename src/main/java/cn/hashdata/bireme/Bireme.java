@@ -170,7 +170,7 @@ public class Bireme implements Daemon {
         temporatyTables.put(conn, new HashSet<String>());
       }
 
-      logger.error("cxt.loaderConnections --- size:"+  conns.size());
+      logger.info("-------------------------cxt.loaderConnections ---init--- size:"+  conns.size());
     } catch (SQLException e) {
         logger.error(e);
       for (Connection closeConn : temporatyTables.keySet()) {
