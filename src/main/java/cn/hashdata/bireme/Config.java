@@ -253,7 +253,6 @@ public class Config {
     HashMap<String, String> localTableMap = new HashMap<String, String>();
     Iterator<String> tables = tableConfig.getKeys();
 
-    List<String> sameTableNum=new ArrayList<>();
     while (tables.hasNext()) {
       originTable = tables.next();
       mappedTable = tableConfig.getString(originTable);
@@ -266,11 +265,6 @@ public class Config {
 
       localTableMap.put(dataSource + "." + originTable, mappedTable);
 
-      if(!sameTableNum.contains(originTable)){
-          sameTableNum.add(originTable);
-      }else{
-          throw new ConfigurationException("表配置-表名重复-tableName:"+originTable);
-      }
       if (!tableMap.values().contains(mappedTable)) {
         loadersCount++;
       }

@@ -34,6 +34,12 @@ public class GetPrimaryKeys {
       strArray = fullname.split("\\.");
       sb.append("'").append(strArray[1].replaceAll("\"","")).append("',");
       dbNameSb.append("'").append(strArray[0]).append("',");
+
+      if(!checkTableMap.contains(strArray[1])){
+          checkTableMap.add(strArray[1]);
+      }else {
+          throw new BiremeException("-------重复的表名配置：tableInfo:"+fullname);
+      }
     }
 
     String tableList = sb.toString().substring(0, sb.toString().length() - 1) + ")";
