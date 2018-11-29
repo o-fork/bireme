@@ -93,6 +93,7 @@ public class GetPrimaryKeys {
         statement.close();
         conn.close();
       } catch (SQLException ignore) {
+          logger.error(ignore);
       }
       String message = "Could not get PrimaryKeys";
       throw new BiremeException(message, e);
