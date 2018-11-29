@@ -81,7 +81,8 @@ public class MaxwellPipeLine extends KafkaPipeLine {
     @Override
     protected String decodeToBit(String data, int precision) {
       String binaryStr = Integer.toBinaryString(Integer.valueOf(data));
-      return String.format("%" + precision + "s", binaryStr).replace(' ', '0');
+      String flag="%" + precision + "s";
+      return String.format(flag, binaryStr).replace(' ', '0');
     }
 
     @Override
@@ -204,6 +205,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
             field = BiremeUtility.jsonGetIgnoreCase(old, fieldName);
             return field;
           } catch (BiremeException ignore) {
+              logger.error("非阻碍性",ignore);
           }
         }
 
