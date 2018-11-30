@@ -86,7 +86,7 @@ public class Table {
       try {
         conn.close();
       } catch (SQLException ignore) {
-        logger.error("非阻碍性",ignore);
+        logger.info("非阻碍性",ignore);
       }
       String message = "Could not get metadata for public. " + tableName + ".\n";
       throw new BiremeException(message, e);

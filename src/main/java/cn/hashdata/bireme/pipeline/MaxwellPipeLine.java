@@ -164,8 +164,8 @@ public class MaxwellPipeLine extends KafkaPipeLine {
         if(value.has("def") && !value.get("def").isJsonNull()){
             this.def = value.get("def").getAsJsonObject();
         }
-        if(value.has("sql") && !value.get("sql").isJsonNull()){
-            this.def = value.get("sql").getAsJsonObject();
+        if(value.has("sql")){
+            this.sql = value.getAsString();
         }
 
         switch (typeDb) {
@@ -205,7 +205,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
             field = BiremeUtility.jsonGetIgnoreCase(old, fieldName);
             return field;
           } catch (BiremeException ignore) {
-              logger.error("非阻碍性",ignore);
+              logger.info("非阻碍性",ignore);
           }
         }
 

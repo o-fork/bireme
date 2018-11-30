@@ -281,7 +281,7 @@ public class ChangeLoader implements Callable<Long> {
         try {
           conn.rollback();
         } catch (SQLException ignore) {
-            logger.error(ignore);
+            logger.info("非阻碍性",ignore);
         }
 
         optimisticMode = false;
@@ -431,7 +431,7 @@ public class ChangeLoader implements Callable<Long> {
         try {
           pipeIn.close();
         } catch (IOException ignore) {
-            logger.error(ignore);
+            logger.info("非阻碍性",ignore);
         }
       }
     }
@@ -455,7 +455,7 @@ public class ChangeLoader implements Callable<Long> {
       try {
         pipeOut.close();
       } catch (IOException ignore) {
-          logger.error(ignore);
+          logger.info("非阻碍性",ignore);
       }
     }
   }
