@@ -149,7 +149,7 @@ public class Bireme implements Daemon {
    * @throws BiremeException fail to connect
    */
   protected void initLoaderConnections() throws BiremeException {
-    logger.info("Start establishing connections for loaders.");
+    logger.info("-------------------------Start initLoaderConnections for loaders.");
 
     LinkedBlockingQueue<Connection> conns = cxt.loaderConnections;
     HashMap<Connection, HashSet<String>> temporatyTables = cxt.temporaryTables;
