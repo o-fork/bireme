@@ -12,7 +12,7 @@
     <Root level="error">
       <AppenderRef ref="Console"/>
     </Root>
-    <Logger name="Bireme" level="info" additivity="false">  
+    <Logger name="cn.hashdata.bireme" level="info" additivity="false">
       <AppenderRef ref="BiremeConsole" />  
     </Logger> 
   </Loggers>
