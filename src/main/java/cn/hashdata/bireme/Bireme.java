@@ -110,7 +110,6 @@ public class Bireme implements Daemon {
 
     String[] strArray;
     Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
-    logger.error("---Connection-----------:"+conn.hashCode());
     try {
       tableInfoMap = GetPrimaryKeys.getPrimaryKeys(cxt.tableMap, conn);
     } catch (Exception e) {
