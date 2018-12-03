@@ -1,10 +1,13 @@
 package cn.hashdata.bireme.pipeline;
 
+import cn.hashdata.bireme.BiremeException;
 import cn.hashdata.bireme.Row;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author: : yangyang.li
@@ -15,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 public class MysqlToPgDdlUtil {
 
 
+    private static Logger logger= LogManager.getLogger("Bireme." + MysqlToPgDdlUtil.class);
 
     /**
      * mysql ddl语句转 greenplum ddl语句
@@ -44,8 +48,30 @@ public class MysqlToPgDdlUtil {
             sqlMysql = sqlMysql.replaceAll("\r\n"," ").replaceAll("`","").replaceAll("/\\*.*\\*/","");
             resultSQL=createTableSql(record.def,sqlMysql);
         }
+        if(Row.RowType.TABLE_ALTER == rowType){
+
+        }
         return resultSQL;
     }
+
+    /**
+     * 表修改
+     * 1.新增字段
+     * 2.修改字段
+     * 3.删除字段
+     *@author: yangyang.li@ttpai.cn
+     * @param columns
+     * @param sql
+     *@return
+     */
+    private static String tableAlter(JsonObject columns,String sql){
+
+
+
+        return null;
+    }
+
+
 
 
     /**
@@ -56,31 +82,36 @@ public class MysqlToPgDdlUtil {
      *@return
      */
     private static String createTableSql(JsonObject columns,String sql){
-        if(columns== null || !columns.has("columns") || StringUtils.isBlank(sql)){
-            return null;
+        String createSqlStr= null;
+        try {
+            if(columns== null || !columns.has("columns") || StringUtils.isBlank(sql)){
+                return null;
+            }
+            JsonArray columnsArray= columns.get("columns").getAsJsonArray();
+            if(columnsArray.isJsonNull() || columnsArray.size() <=0 ){
+                return null;
+            }
+            String database=columns.get("database").getAsString();
+            String table=columns.get("table").getAsString();
+            StringBuilder createSql=new StringBuilder("CREATE TABLE ");
+            createSql.append(database).append(".").append("\"").append(table).append("\"").append("(");
+            for(int i=0;i<columnsArray.size();i++){
+                JsonObject current=columnsArray.get(i).getAsJsonObject();
+                String type=current.get("type").getAsString();
+                String columnName=current.get("name").getAsString();
+                String pgColumn=typeLengthFromMysqlToPlum(type,columnName,sql);
+                createSql.append(" ").append(pgColumn).append(" ").append(",");
+            }
+            createSqlStr = createSql.toString();
+            String primaryKey=null;
+            if(columns.has("primary-key") && !columns.get("primary-key").isJsonNull()){
+                primaryKey= columns.get("primary-key").getAsJsonArray().toString();
+                primaryKey= primaryKey.substring(1,primaryKey.length()-1).replaceAll("\"","");
+            }
+            createSqlStr = createSqlStr + " PRIMARY KEY ("+primaryKey+")" + ")" +" DISTRIBUTED BY ("+primaryKey+") ; ";
+        } catch (Exception e) {
+            logger.error("构建postgreSQL 语句异常：",e);
         }
-        JsonArray columnsArray= columns.get("columns").getAsJsonArray();
-        if(columnsArray.isJsonNull() || columnsArray.size() <=0 ){
-            return null;
-        }
-        String database=columns.get("database").getAsString();
-        String table=columns.get("table").getAsString();
-        StringBuilder createSql=new StringBuilder("CREATE TABLE ");
-        createSql.append(database).append(".").append("\"").append(table).append("\"").append("(");
-        for(int i=0;i<columnsArray.size();i++){
-            JsonObject current=columnsArray.get(i).getAsJsonObject();
-            String type=current.get("type").getAsString();
-            String columnName=current.get("name").getAsString();
-            String pgColumn=typeLengthFromMysqlToPlum(type,columnName,sql);
-            createSql.append(" ").append(pgColumn).append(" ").append(",");
-        }
-        String createSqlStr=createSql.toString();
-        String primaryKey=null;
-        if(columns.has("primary-key") && !columns.get("primary-key").isJsonNull()){
-            primaryKey= columns.get("primary-key").getAsJsonArray().toString();
-            primaryKey= primaryKey.substring(1,primaryKey.length()-1).replaceAll("\"","");
-        }
-        createSqlStr = createSqlStr + " PRIMARY KEY ("+primaryKey+")" + ")" +" DISTRIBUTED BY ("+primaryKey+") ; ";
         return createSqlStr;
     }
 
@@ -91,7 +122,7 @@ public class MysqlToPgDdlUtil {
      * @param type  mysql 列类型转 greenplum 列类型
      *@return
      */
-    private static String typeLengthFromMysqlToPlum(String type,String columnName,String sql){
+    private static String typeLengthFromMysqlToPlum(String type,String columnName,String sql) throws Exception{
         String pgColumn=null;
         Boolean hasLength=true;
         switch (type.toUpperCase()){
@@ -153,7 +184,7 @@ public class MysqlToPgDdlUtil {
      * @param mysqlStr
      *@return
      */
-    private static String replaceColumnType(String columnName,String pgType,String mysqlStr,Boolean hasLength){
+    private static String replaceColumnType(String columnName,String pgType,String mysqlStr,Boolean hasLength) throws Exception{
         String subStr=  mysqlStr.substring(mysqlStr.indexOf(columnName)+columnName.length(),mysqlStr.length());
         if(subStr.startsWith("`") || subStr.startsWith(" ")){
             subStr = subStr.substring(1,subStr.length()).trim();
