@@ -205,7 +205,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
             field = BiremeUtility.jsonGetIgnoreCase(old, fieldName);
             return field;
           } catch (BiremeException ignore) {
-              logger.info("非阻碍性",ignore);
+              logger.debug("非阻碍性",ignore);
           }
         }
 

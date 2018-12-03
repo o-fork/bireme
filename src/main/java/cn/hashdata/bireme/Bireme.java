@@ -137,7 +137,7 @@ public class Bireme implements Daemon {
     try {
       conn.close();
     } catch (SQLException ignore) {
-        logger.info("非阻碍性",ignore);
+        logger.debug("非阻碍性",ignore);
     }
 
     logger.info("Finish getting metadata of target tables from target database.");
@@ -168,7 +168,7 @@ public class Bireme implements Daemon {
         try {
           stmt.execute("set gp_autostats_mode = none;");
         } catch (SQLException ignore) {
-            logger.info("非阻碍性",ignore);
+            logger.debug("非阻碍性",ignore);
         }
 
         conn.setAutoCommit(false);
@@ -183,7 +183,7 @@ public class Bireme implements Daemon {
         try {
           closeConn.close();
         } catch (SQLException ignore) {
-            logger.info("非阻碍性",ignore);
+            logger.debug("非阻碍性",ignore);
         }
       }
 
