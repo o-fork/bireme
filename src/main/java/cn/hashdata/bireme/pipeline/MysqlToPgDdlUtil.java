@@ -52,7 +52,7 @@ public class MysqlToPgDdlUtil {
         if(Row.RowType.TABLE_ALTER == rowType){
             sqlMysql = sqlMysql.replaceAll("\r\n"," ").replaceAll("`","").replaceAll("/\\*.*\\*/","");
             try {
-                resultSQL=tableAlter(record.old,record.def,sqlMysql);
+                resultSQL=tableAlterHandle(record.old,record.def,sqlMysql);
             } catch (Exception e) {
                 logger.error("Row.RowType.TABLE_ALTER 类型失败:sql-{}",sqlMysql,e);
             }
@@ -70,7 +70,7 @@ public class MysqlToPgDdlUtil {
      * @param sql
      *@return
      */
-    private static String tableAlter(JsonObject old,JsonObject def,String sql) throws Exception{
+    private static String tableAlterHandle(JsonObject old,JsonObject def,String sql) throws Exception{
         Integer isPattern=  TableAlertTypeEnum.isPattern(sql);
         if(isPattern!=null && isPattern == 0){
             return null;
@@ -111,8 +111,8 @@ public class MysqlToPgDdlUtil {
                         JsonObject newColumn= newColumnArr.get(i).getAsJsonObject();
                         String newColumnName=newColumn.get("name").getAsString();
                         String newTypeName=newColumn.get("type").getAsString();
-                        String pgColumn= typeLengthFromMysqlToPlum(newTypeName,newColumnName,sql);
-                        sqlStr.append("ADD COLUMN ").append(pgColumn);
+                        String pgType= typeLengthFromMysqlToPlum(newTypeName,newColumnName,sql);
+                        sqlStr.append("ADD COLUMN ").append(newColumnName).append(pgType);
                         if((i+1) != newColumnSize ){
                             sqlStr.append(",");
                         }
@@ -120,10 +120,58 @@ public class MysqlToPgDdlUtil {
                 }
                break;
            case 5://modify column
-
-
-
-
+               JsonArray oldArrayColumns=old.getAsJsonArray("columns");
+               JsonArray newArrayColumns=def.getAsJsonArray("columns");
+               if(oldArrayColumns.size() == newArrayColumns.size()){
+                    JsonArray afterArrayType=new JsonArray();
+                    JsonArray afterArrayColumn=new JsonArray();
+                    JsonObject afterObjType=null;
+                    JsonObject afterObjColumn=null;
+                    for(int i=0;i < newArrayColumns.size() ; i++ ){
+                        JsonObject newCurr=newArrayColumns.get(i).getAsJsonObject();
+                        JsonObject oldCurr=oldArrayColumns.get(i).getAsJsonObject();
+                        afterObjType=new JsonObject();
+                        afterObjColumn = new JsonObject();
+                        //列名相同 且 类型不同。修改类型
+                        if(oldCurr.get("name").getAsString().equals(newCurr.get("name").getAsString()) &&
+                                !oldCurr.get("type").getAsString().equals(newCurr.get("type").getAsString())    ){
+                            afterObjType.addProperty("name",newCurr.get("name").getAsString());
+                            afterObjType.addProperty("type",newCurr.get("type").getAsString());
+                            afterArrayType.add(afterObjType);
+                        }else{// 就是修改列名
+                            afterObjColumn.addProperty("oldName",oldCurr.get("name").getAsString());
+                            afterObjColumn.addProperty("newName",newCurr.get("name").getAsString());
+                            afterArrayColumn.add(afterObjColumn);
+                        }
+                    }
+                   if(afterArrayColumn.size() > 0){
+                       //修改列名字
+                       int totalColumn= afterArrayColumn.size();
+                       for(int i=0;i<totalColumn ;i++ ){
+                           JsonObject columnCurr= afterArrayColumn.get(i).getAsJsonObject();
+                           StringBuilder columnString=new StringBuilder();
+                           columnString.append("ALTER TABLE ").append(database).append("\"").append(newTable).append("\"").append(" RENAME ");
+                           columnString.append(columnCurr.get("oldName").getAsString()).append(" TO ").append(columnCurr.get("newName").getAsString()).append(";");
+                           sqlStr.append(columnString.toString());
+                       }
+                   }
+                    if(afterArrayType.size() > 0 ){
+                        //修改列类型
+                        int totalType= afterArrayType.size();
+                        StringBuilder typeBuilder=new StringBuilder();
+                        typeBuilder.append("ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"");
+                        for(int i=0;i<totalType ;i++ ){
+                            JsonObject typeCurr= afterArrayType.get(i).getAsJsonObject();
+                            String columnName=  typeCurr.get("name").getAsString();
+                            String pgType=typeLengthFromMysqlToPlum(typeCurr.get("type").getAsString(),columnName,sql);
+                            typeBuilder.append(" ALTER COLUMN ").append(columnName).append(" TYPE ").append(pgType);
+                            if((i+1)!=totalType){
+                                typeBuilder.append(",");
+                            }
+                        }
+                        sqlStr.append(typeBuilder.toString());
+                    }
+               }
                break;
        }
         return sqlStr.toString();
@@ -231,7 +279,7 @@ public class MysqlToPgDdlUtil {
                     pgColumn = type;
         }
         String pgType=  replaceColumnType(columnName,pgColumn,sql,hasLength);
-        return columnName +" "+pgType;
+        return pgType;
     }
 
 
