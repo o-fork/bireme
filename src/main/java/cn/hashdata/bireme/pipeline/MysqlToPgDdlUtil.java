@@ -112,7 +112,7 @@ public class MysqlToPgDdlUtil {
                         String newColumnName=newColumn.get("name").getAsString();
                         String newTypeName=newColumn.get("type").getAsString();
                         String pgType= typeLengthFromMysqlToPlum(newTypeName,newColumnName,sql);
-                        sqlStr.append("ADD COLUMN ").append(newColumnName).append(pgType);
+                        sqlStr.append("ADD COLUMN ").append(newColumnName).append(" ").append(pgType);
                         if((i+1) != newColumnSize ){
                             sqlStr.append(",");
                         }
@@ -208,8 +208,8 @@ public class MysqlToPgDdlUtil {
                 JsonObject current=columnsArray.get(i).getAsJsonObject();
                 String type=current.get("type").getAsString();
                 String columnName=current.get("name").getAsString();
-                String pgColumn=typeLengthFromMysqlToPlum(type,columnName,sql);
-                createSql.append(" ").append(pgColumn).append(" ").append(",");
+                String pgType=typeLengthFromMysqlToPlum(type,columnName,sql);
+                createSql.append(" ").append(columnName).append(" ").append(pgType).append(",");
             }
             createSqlStr = createSql.toString();
             String primaryKey=null;
