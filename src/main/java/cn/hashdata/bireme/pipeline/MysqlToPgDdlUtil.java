@@ -51,7 +51,11 @@ public class MysqlToPgDdlUtil {
         }
         if(Row.RowType.TABLE_ALTER == rowType){
             sqlMysql = sqlMysql.replaceAll("\r\n"," ").replaceAll("`","").replaceAll("/\\*.*\\*/","");
-            resultSQL=tableAlter(record.old,record.def,sqlMysql);
+            try {
+                resultSQL=tableAlter(record.old,record.def,sqlMysql);
+            } catch (Exception e) {
+                logger.error("Row.RowType.TABLE_ALTER 类型失败:sql-{}",sqlMysql,e);
+            }
         }
         return resultSQL;
     }
@@ -66,7 +70,7 @@ public class MysqlToPgDdlUtil {
      * @param sql
      *@return
      */
-    private static String tableAlter(JsonObject old,JsonObject def,String sql){
+    private static String tableAlter(JsonObject old,JsonObject def,String sql) throws Exception{
         Integer isPattern=  TableAlertTypeEnum.isPattern(sql);
         if(isPattern!=null && isPattern == 0){
             return null;
@@ -74,7 +78,7 @@ public class MysqlToPgDdlUtil {
         String database=def.get("database").getAsString();
         String oldTable=old.get("table").getAsString();
         String newTable=def.get("table").getAsString();
-       StringBuilder sqlStr=new StringBuilder();
+        StringBuilder sqlStr=new StringBuilder();
        switch (isPattern){
            case 1://table rename
                 sqlStr.append(" alter table ").append(database).append(".").append("\"").append(oldTable).append("\"").append(" rename to ")
@@ -98,10 +102,28 @@ public class MysqlToPgDdlUtil {
            case 3://table change
                break;
            case 4://add column
-
-
+                int oldColumnSize= old.getAsJsonArray("columns").size();
+                JsonArray newColumnArr= def.getAsJsonArray("columns");
+                int newColumnSize=newColumnArr.size();
+                if(newColumnSize > oldColumnSize){
+                    sqlStr.append("ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"").append(" ");
+                    for(int i=oldColumnSize; i< newColumnSize;i++){
+                        JsonObject newColumn= newColumnArr.get(i).getAsJsonObject();
+                        String newColumnName=newColumn.get("name").getAsString();
+                        String newTypeName=newColumn.get("type").getAsString();
+                        String pgColumn= typeLengthFromMysqlToPlum(newTypeName,newColumnName,sql);
+                        sqlStr.append("ADD COLUMN ").append(pgColumn);
+                        if((i+1) != newColumnSize ){
+                            sqlStr.append(",");
+                        }
+                    }
+                }
                break;
            case 5://modify column
+
+
+
+
                break;
        }
         return sqlStr.toString();
@@ -208,13 +230,13 @@ public class MysqlToPgDdlUtil {
                 default:
                     pgColumn = type;
         }
-        pgColumn=  replaceColumnType(columnName,pgColumn,sql,hasLength);
-        return pgColumn;
+        String pgType=  replaceColumnType(columnName,pgColumn,sql,hasLength);
+        return columnName +" "+pgType;
     }
 
 
     /**
-     *  解析sql中字段的类型，并直接替换成 palo类型
+     *  解析sql中字段的类型
      *@author: yangyang.li@ttpai.cn
      * @param columnName
      * @param mysqlStr
