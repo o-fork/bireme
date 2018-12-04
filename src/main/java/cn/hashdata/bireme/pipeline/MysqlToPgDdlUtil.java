@@ -2,6 +2,7 @@ package cn.hashdata.bireme.pipeline;
 
 import cn.hashdata.bireme.BiremeException;
 import cn.hashdata.bireme.Row;
+import cn.hashdata.bireme.TableAlertTypeEnum;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -49,7 +50,8 @@ public class MysqlToPgDdlUtil {
             resultSQL=createTableSql(record.def,sqlMysql);
         }
         if(Row.RowType.TABLE_ALTER == rowType){
-
+            sqlMysql = sqlMysql.replaceAll("\r\n"," ").replaceAll("`","").replaceAll("/\\*.*\\*/","");
+            resultSQL=tableAlter(record.old,record.def,sqlMysql);
         }
         return resultSQL;
     }
@@ -60,15 +62,49 @@ public class MysqlToPgDdlUtil {
      * 2.修改字段
      * 3.删除字段
      *@author: yangyang.li@ttpai.cn
-     * @param columns
+     * @param def
      * @param sql
      *@return
      */
-    private static String tableAlter(JsonObject columns,String sql){
+    private static String tableAlter(JsonObject old,JsonObject def,String sql){
+        Integer isPattern=  TableAlertTypeEnum.isPattern(sql);
+        if(isPattern!=null && isPattern == 0){
+            return null;
+        }
+        String database=def.get("database").getAsString();
+        String oldTable=old.get("table").getAsString();
+        String newTable=def.get("table").getAsString();
+       StringBuilder sqlStr=new StringBuilder();
+       switch (isPattern){
+           case 1://table rename
+                sqlStr.append(" alter table ").append(database).append(".").append("\"").append(oldTable).append("\"").append(" rename to ")
+                .append("\"").append(newTable).append("\"");
+               break;
+           case 2://drop column
+               JsonArray jsonArr= def.get("columns").getAsJsonArray();
+               int arrSize= jsonArr.size();
+               if(arrSize > 0){
+                   sqlStr.append(" ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"");
+                   for(int i=0;i<arrSize;i++){
+                       JsonObject current= jsonArr.get(i).getAsJsonObject();
+                       String columnName=current.get("name").getAsString();
+                       sqlStr.append(" DROP COLUMN ").append(columnName);
+                       if((i+1) != arrSize){
+                           sqlStr.append(",");
+                       }
+                   }
+               }
+               break;
+           case 3://table change
+               break;
+           case 4://add column
 
 
-
-        return null;
+               break;
+           case 5://modify column
+               break;
+       }
+        return sqlStr.toString();
     }
 
 
