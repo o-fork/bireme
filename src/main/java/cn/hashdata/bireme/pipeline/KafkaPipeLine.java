@@ -47,6 +47,7 @@ public abstract class KafkaPipeLine extends PipeLine {
     try {
       records = consumer.poll(POLL_TIMEOUT);
     } catch (InterruptException e) {
+        logger.debug("非阻碍性",e);
     }
 
     if (cxt.stop || records == null || records.isEmpty()) {
