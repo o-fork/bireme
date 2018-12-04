@@ -165,7 +165,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
             this.def = value.get("def").getAsJsonObject();
         }
         if(value.has("sql")){
-            this.sql = value.getAsString();
+            this.sql = value.get("sql").getAsString();
         }
 
         switch (typeDb) {
