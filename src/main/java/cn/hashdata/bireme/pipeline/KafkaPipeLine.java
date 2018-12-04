@@ -114,6 +114,8 @@ public abstract class KafkaPipeLine extends PipeLine {
           continue;
         }
 
+        logger.info("----------------------pg-ddl:sql:{}",row.pgSql);
+
         addToRowSet(row, rowSet);
         offsets.put(change.topic() + "+" + change.partition(), change.offset());
         callback.setNewestRecord(row.produceTime);
