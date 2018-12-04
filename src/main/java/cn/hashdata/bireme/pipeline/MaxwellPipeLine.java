@@ -155,8 +155,8 @@ public class MaxwellPipeLine extends KafkaPipeLine {
         JsonObject value = jsonParser.parse(changeValue).getAsJsonObject();
         String typeDb=  value.get("type").getAsString();
         this.dataSource = getPipeLineName();
-        this.database = value.get("database").getAsString();
-        this.table = value.get("table").getAsString();
+        this.database = value.has("database") ? value.get("database").getAsString() : "";
+        this.table = value.has("table") ? value.get("table").getAsString():"";
         this.produceTime = value.get("ts").getAsLong() * 1000;
         if (value.has("old") && !value.get("old").isJsonNull()) {
             this.old = value.get("old").getAsJsonObject();
