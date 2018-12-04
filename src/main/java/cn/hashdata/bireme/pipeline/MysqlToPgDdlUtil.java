@@ -138,7 +138,10 @@ public class MysqlToPgDdlUtil {
                             afterObjType.addProperty("name",newCurr.get("name").getAsString());
                             afterObjType.addProperty("type",newCurr.get("type").getAsString());
                             afterArrayType.add(afterObjType);
-                        }else{// 就是修改列名
+                        }
+                        // 列名不同。类型相同
+                        if(!oldCurr.get("name").getAsString().equals(newCurr.get("name").getAsString()) &&
+                                oldCurr.get("type").getAsString().equals(newCurr.get("type").getAsString())  ){
                             afterObjColumn.addProperty("oldName",oldCurr.get("name").getAsString());
                             afterObjColumn.addProperty("newName",newCurr.get("name").getAsString());
                             afterArrayColumn.add(afterObjColumn);
