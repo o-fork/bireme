@@ -102,14 +102,15 @@ public class MaxwellPipeLine extends KafkaPipeLine {
 
       row.type = record.type;
       row.produceTime = record.produceTime;
-      row.originTable = getOriginTableName(record);
-      row.mappedTable = getMappedTableName(record);
-      row.keys = formatColumns(record, table, table.keyNames, false);
 
+      if(row.type == RowType.INSERT || row.type == RowType.UPDATE ){
+          row.originTable = getOriginTableName(record);
+          row.mappedTable = getMappedTableName(record);
+          row.keys = formatColumns(record, table, table.keyNames, false);
+      }
       if (row.type == RowType.INSERT || row.type == RowType.UPDATE) {
         row.tuple = formatColumns(record, table, table.columnName, false);
       }
-
       if (row.type == RowType.UPDATE) {
         row.oldKeys = formatColumns(record, table, table.keyNames, true);
 
@@ -117,6 +118,8 @@ public class MaxwellPipeLine extends KafkaPipeLine {
           row.oldKeys = null;
         }
       }
+
+      // -----------------------------------------------
 
       if (row.type == RowType.TABLE_ALTER){//新增，删除，修改 列与索引与 修改表名
            row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_ALTER,record);
