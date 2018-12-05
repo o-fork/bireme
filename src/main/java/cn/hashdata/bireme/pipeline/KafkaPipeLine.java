@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -114,9 +115,9 @@ public abstract class KafkaPipeLine extends PipeLine {
         if (!transform(change, row)) {
           continue;
         }
-
-        logger.info("----------------------pg-ddl:sql:{}",row.pgSql);
-
+        if(StringUtils.isNotBlank(row.pgSql)){
+            logger.info("----------------------pg-ddl:sql:{}",row.pgSql);
+        }
         addToRowSet(row, rowSet);
         offsets.put(change.topic() + "+" + change.partition(), change.offset());
         callback.setNewestRecord(row.produceTime);
