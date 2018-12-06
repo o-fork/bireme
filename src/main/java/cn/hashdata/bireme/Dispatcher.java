@@ -9,6 +9,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import cn.hashdata.bireme.pipeline.PipeLine;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * A {@code Dispatcher} is binded with a {@code PipeLine}. It get the transform result and insert
@@ -18,6 +20,8 @@ import cn.hashdata.bireme.pipeline.PipeLine;
  *
  */
 public class Dispatcher {
+
+  private static Logger logger= LogManager.getLogger("Bireme." +Dispatcher.class);
   public Context cxt;
   public PipeLine pipeLine;
   public RowSet rowSet;
@@ -82,6 +86,10 @@ public class Dispatcher {
     for (Entry<String, ArrayList<Row>> entry : entrySet) {
       String fullTableName = entry.getKey();
       ArrayList<Row> rows = entry.getValue();
+      if(cache == null || !cache.containsKey(fullTableName)){
+          logger.info("---------no-tableName---------:"+fullTableName);
+          continue;
+      }
       RowCache rowCache = cache.get(fullTableName);
 
       if (rowCache == null) {
