@@ -146,7 +146,7 @@ public class MysqlToPgDdlUtil {
                            JsonObject columnCurr= afterArrayColumnChange.get(i).getAsJsonObject();
                            StringBuilder columnString=new StringBuilder();
                            columnString.append("ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"").append(" RENAME ");
-                           columnString.append(columnCurr.get("oldName").getAsString()).append(" TO ").append(columnCurr.get("newName").getAsString());
+                           columnString.append(columnCurr.get("oldName").getAsString()).append(" TO ").append(columnCurr.get("newName").getAsString()).append(";");
                            sqlStr.append(columnString.toString());
                        }
                    }
