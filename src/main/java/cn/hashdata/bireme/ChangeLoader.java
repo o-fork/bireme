@@ -244,7 +244,7 @@ public class ChangeLoader implements Callable<Long> {
         boolean success= executeDdlSql(currentTask.pgSql);
         //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
         if(success && currentTask.type == Row.RowType.TABLE_ALTER){
-
+            
 
 
         }
