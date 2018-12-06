@@ -145,7 +145,7 @@ public class RowCache {
         try {
           loadResult.get();
         } catch (ExecutionException e) {
-          throw new BiremeException("Loader failed. ", e.getCause());
+          throw new BiremeException("Loader failed. ", e);
         }
       }
 
@@ -206,10 +206,12 @@ public class RowCache {
               task.delete.add(row.keys);
               task.insert.put(row.keys, row.tuple);
             }
-            case TABLE_ALTER:
-               if(StringUtils.isNotBlank(row.pgSql)){
-                   task.pgSql = row.pgSql;
-               }
+            break;
+           case TABLE_ALTER:
+             if(StringUtils.isNotBlank(row.pgSql)){
+                task.pgSql = row.pgSql;
+             }
+               break;
         }
       }
 
