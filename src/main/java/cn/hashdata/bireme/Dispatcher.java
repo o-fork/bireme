@@ -9,6 +9,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import cn.hashdata.bireme.pipeline.PipeLine;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -86,12 +89,11 @@ public class Dispatcher {
     for (Entry<String, ArrayList<Row>> entry : entrySet) {
       String fullTableName = entry.getKey();
       ArrayList<Row> rows = entry.getValue();
-      if(cache == null || !cache.containsKey(fullTableName)){
-          logger.info("---------no-tableName---------:"+fullTableName);
+      if(StringUtils.isBlank(fullTableName)){
+//          logger.info("fullTableName:"+fullTableName+",rows:"+ JSONArray.toJSONString(rows));
           continue;
       }
       RowCache rowCache = cache.get(fullTableName);
-
       if (rowCache == null) {
         rowCache = new RowCache(cxt, fullTableName, pipeLine);
         cache.put(fullTableName, rowCache);
