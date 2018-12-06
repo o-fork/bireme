@@ -20,6 +20,7 @@ public class LoadTask {
   public ArrayList<CommitCallback> callbacks;
   public HashSet<String> delete;
   public HashMap<String, String> insert;
+  public String pgSql;//ddl语句
 
   /**
    * Create a new {@code LoadTask}.
@@ -37,5 +38,6 @@ public class LoadTask {
     callbacks.clear();
     delete.clear();
     insert.clear();
+    pgSql=null;
   }
 }

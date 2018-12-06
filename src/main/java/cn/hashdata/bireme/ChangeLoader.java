@@ -215,6 +215,9 @@ public class ChangeLoader implements Callable<Long> {
    * @throws InterruptedException if interrupted while waiting
    */
   protected void executeTask() throws BiremeException, InterruptedException {
+
+    logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
+
     if (!currentTask.delete.isEmpty() || (!optimisticMode && !currentTask.insert.isEmpty())) {
       int size = currentTask.delete.size();
 

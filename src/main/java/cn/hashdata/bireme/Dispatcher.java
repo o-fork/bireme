@@ -90,7 +90,6 @@ public class Dispatcher {
       String fullTableName = entry.getKey();
       ArrayList<Row> rows = entry.getValue();
       if(StringUtils.isBlank(fullTableName)){
-//          logger.info("fullTableName:"+fullTableName+",rows:"+ JSONArray.toJSONString(rows));
           continue;
       }
       RowCache rowCache = cache.get(fullTableName);

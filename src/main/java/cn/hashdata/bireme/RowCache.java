@@ -14,6 +14,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import cn.hashdata.bireme.pipeline.PipeLine;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * An in-memory cache for {@link Row}. We use cache to merge and load change data in batch.
@@ -205,6 +206,10 @@ public class RowCache {
               task.delete.add(row.keys);
               task.insert.put(row.keys, row.tuple);
             }
+            case TABLE_ALTER:
+               if(StringUtils.isNotBlank(row.pgSql)){
+                   task.pgSql = row.pgSql;
+               }
         }
       }
 

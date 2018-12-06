@@ -121,7 +121,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
 
       // -----------------------------------------------
 
-      if (row.type == RowType.TABLE_ALTER){//新增，删除，修改 列与索引与 修改表名
+      if (row.type == RowType.TABLE_ALTER){//新增，删除，修改 列
            row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_ALTER,record);
            row.originTable = getOriginTableName(record);
            row.mappedTable = getMappedTableName(record);
