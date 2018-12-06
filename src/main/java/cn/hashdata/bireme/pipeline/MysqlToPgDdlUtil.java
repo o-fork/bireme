@@ -312,6 +312,7 @@ public class MysqlToPgDdlUtil {
             case "TINYINT":
             case "SMALLINT":
             case "BIGINT":
+                hasLength = false;
                 pgColumn="bigint";
                 break;
             case "FLOAT":
