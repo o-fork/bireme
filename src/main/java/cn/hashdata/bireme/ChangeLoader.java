@@ -287,7 +287,9 @@ public class ChangeLoader implements Callable<Long> {
           try {
               statement= conn.createStatement();
               for(String ddl:listDdl){
-                  statement.execute(ddl);
+                  if(StringUtils.isNotBlank(ddl)){
+                      statement.execute(ddl);
+                  }
               }
           } catch (Exception e) {
                 logger.error("-----------execute--ddl---error---ddlSQL:{}",ddlSql,e);
