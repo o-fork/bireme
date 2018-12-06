@@ -61,7 +61,7 @@ public class Dispatcher {
         try {
           rowSet = head.get();
         } catch (ExecutionException e) {
-          throw new BiremeException("Transform failed.\n", e.getCause());
+          throw new BiremeException("Transform failed.\n", e);
         }
 
         complete = insertRowSet();
