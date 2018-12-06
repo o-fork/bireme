@@ -103,11 +103,12 @@ public class MaxwellPipeLine extends KafkaPipeLine {
       row.type = record.type;
       row.produceTime = record.produceTime;
 
-      if(row.type == RowType.INSERT || row.type == RowType.UPDATE ){
+      if(row.type == RowType.INSERT || row.type == RowType.UPDATE || row.type == RowType.DELETE ){
           row.originTable = getOriginTableName(record);
           row.mappedTable = getMappedTableName(record);
           row.keys = formatColumns(record, table, table.keyNames, false);
       }
+
       if (row.type == RowType.INSERT || row.type == RowType.UPDATE) {
         row.tuple = formatColumns(record, table, table.columnName, false);
       }
