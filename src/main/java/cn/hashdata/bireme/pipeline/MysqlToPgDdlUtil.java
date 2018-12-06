@@ -1,7 +1,11 @@
 package cn.hashdata.bireme.pipeline;
 
 import cn.hashdata.bireme.BiremeException;
+import cn.hashdata.bireme.BiremeUtility;
+import cn.hashdata.bireme.Context;
+import cn.hashdata.bireme.GetPrimaryKeys;
 import cn.hashdata.bireme.Row;
+import cn.hashdata.bireme.Table;
 import cn.hashdata.bireme.TableAlertTypeEnum;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -10,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -349,6 +354,25 @@ public class MysqlToPgDdlUtil {
             }
         }
         return pgType;
+    }
+
+
+
+    /**
+     * ddl 执行完更新 内存中的table
+     *@author: yangyang.li@ttpai.cn
+     * @param fullTableName
+     * @param cxt
+     * @param dbName
+     * @param tableName
+     *@return
+     */
+    public static Table reflushTableAfterDDl(String fullTableName, Connection conn,String dbName,String tableName) throws Exception{
+        HashMap<String,String> paramMap=new HashMap<>();
+        paramMap.put(fullTableName,fullTableName);
+        Map<String, List<String>> listKeyMap= GetPrimaryKeys.getRefulshPrimaryKeys(paramMap,conn);
+        Table table=new Table(dbName,tableName,listKeyMap,conn,null);
+        return table;
     }
 
     public static void main(String[] args) {

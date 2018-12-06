@@ -39,6 +39,9 @@ public class Table {
   public HashMap<String, Integer> columnPrecision;
   public HashMap<String, Integer> columnScale;
   public ArrayList<String> keyNames;
+  public String tableFullName;
+  public String dbName;
+  public String tableName;
 
   /**
    * Get metadata of a specific table using a given connection and construct a new {@code Table}.
@@ -56,6 +59,8 @@ public class Table {
     this.columnType = new HashMap<String, Integer>();
     this.columnPrecision = new HashMap<String, Integer>();
     this.columnScale = new HashMap<String, Integer>();
+    this.dbName = dbName;
+    this.tableName =tableName;
 
     Statement statement = null;
     ResultSet rs = null;
@@ -63,6 +68,7 @@ public class Table {
 
     try {
       String fullTableName=dbName+"."+tableName;
+      this.tableFullName = fullTableName;
       List<String> mapList = tableMap.get(fullTableName);
       for (int i = 0; i < mapList.size(); i++) {
         this.keyNames.add(mapList.get(i));
@@ -92,4 +98,65 @@ public class Table {
       throw new BiremeException(message, e);
     }
   }
+
+    /**
+     * Get metadata of a specific table using a given connection and construct a new {@code Table}.
+     *
+     * @param tableMap  The schema including table
+     * @param tableName Table name
+     * @param conn      Connection to the database
+     * @throws BiremeException - Wrap and throw Exception which cannot be handled.
+     */
+    public Table(String dbName,String tableName, Map<String, List<String>> tableMap, Connection conn,String none)
+            throws BiremeException {
+        this.ncolumns = 0;
+        this.columnName = new ArrayList<String>();
+        this.keyNames = new ArrayList<String>();
+        this.columnType = new HashMap<String, Integer>();
+        this.columnPrecision = new HashMap<String, Integer>();
+        this.columnScale = new HashMap<String, Integer>();
+        this.dbName = dbName;
+        this.tableName =tableName;
+
+        Statement statement = null;
+        ResultSet rs = null;
+        ResultSetMetaData rsMetaData = null;
+
+        try {
+            String fullTableName=dbName+"."+tableName;
+            this.tableFullName = fullTableName;
+            List<String> mapList = tableMap.get(fullTableName);
+            for (int i = 0; i < mapList.size(); i++) {
+                this.keyNames.add(mapList.get(i));
+            }
+
+            statement = conn.createStatement();
+
+            String queryTableInfo = "select * from "+fullTableName+ " where 1=2";
+            rs = statement.executeQuery(queryTableInfo);
+            rsMetaData = rs.getMetaData();
+            this.ncolumns = rsMetaData.getColumnCount();
+
+            for (int i = 0, len = rsMetaData.getColumnCount(); i < len; i++) {
+                String name = rsMetaData.getColumnName(i + 1);
+                this.columnName.add(name);
+                this.columnType.put(name, rsMetaData.getColumnType(i + 1));
+                this.columnPrecision.put(name, rsMetaData.getPrecision(i + 1));
+                this.columnScale.put(name, rsMetaData.getScale(i + 1));
+            }
+        } catch (SQLException e) {
+            String message = "Could not get metadata for public. " + tableName + ".\n";
+            throw new BiremeException(message, e);
+        }finally {
+            if(statement!=null){
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                    logger.debug(e);
+                }
+            }
+        }
+    }
+
+
 }

@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 
+import cn.hashdata.bireme.pipeline.MysqlToPgDdlUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
@@ -239,14 +241,21 @@ public class ChangeLoader implements Callable<Long> {
     }
 
     //ddl语句
+    boolean success= false;
     if(StringUtils.isNotBlank(currentTask.pgSql)){
         logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
-        boolean success= executeDdlSql(currentTask.pgSql);
+        success= executeDdlSql(currentTask.pgSql);
         //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
         if(success && currentTask.type == Row.RowType.TABLE_ALTER){
-            
-
-
+            String fullTableName=this.table.tableFullName;
+            try {
+                Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,this.table.dbName,this.table.tableName);
+                this.table = tableNew;
+                cxt.tablesInfo.put(fullTableName,tableNew);
+                logger.info("------------------更新表结构结束-------------fullTableName："+fullTableName);
+            } catch (Exception e) {
+                logger.error("---ddl语句执行后，获取更新后的表结构异常：table:{}",fullTableName,e);
+            }
         }
     }
 
@@ -260,6 +269,9 @@ public class ChangeLoader implements Callable<Long> {
     for (CommitCallback callback : currentTask.callbacks) {
       callback.done();
     }
+
+
+
   }
   
   /**
