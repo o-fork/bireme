@@ -10,6 +10,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * @author: : yangyang.li
  * Created time: 2018/11/30.
@@ -72,6 +77,7 @@ public class MysqlToPgDdlUtil {
      */
     private static String tableAlterHandle(JsonObject old,JsonObject def,String sql) throws Exception{
         Integer isPattern=  TableAlertTypeEnum.isPattern(sql);
+        logger.info("---------------isPattern-------------:"+isPattern);
         if(isPattern!=null && isPattern == 0){
             return null;
         }
@@ -86,13 +92,22 @@ public class MysqlToPgDdlUtil {
                break;
            case 2://drop column
                JsonArray jsonArr= def.get("columns").getAsJsonArray();
-               int arrSize= jsonArr.size();
+               JsonArray oldArr=old.get("columns").getAsJsonArray();
+               List<String> oldListColumn=new ArrayList<>();
+               for(int j=0;j<oldArr.size();j++){
+                   oldListColumn.add(oldArr.get(j).getAsJsonObject().get("name").getAsString());
+               }
+               List<String> newListColumn=new ArrayList<>();
+               for(int i=0;i<jsonArr.size();i++){
+                   newListColumn.add(jsonArr.get(i).getAsJsonObject().get("name").getAsString());
+               }
+               //删除
+               oldListColumn.removeAll(newListColumn);
+               int arrSize= oldListColumn.size();
                if(arrSize > 0){
                    sqlStr.append(" ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"");
                    for(int i=0;i<arrSize;i++){
-                       JsonObject current= jsonArr.get(i).getAsJsonObject();
-                       String columnName=current.get("name").getAsString();
-                       sqlStr.append(" DROP COLUMN ").append(columnName);
+                       sqlStr.append(" DROP COLUMN ").append(oldListColumn.get(i));
                        if((i+1) != arrSize){
                            sqlStr.append(",");
                        }
@@ -102,18 +117,29 @@ public class MysqlToPgDdlUtil {
            case 3://table change
                break;
            case 4://add column
-                int oldColumnSize= old.getAsJsonArray("columns").size();
-                JsonArray newColumnArr= def.getAsJsonArray("columns");
-                int newColumnSize=newColumnArr.size();
-                if(newColumnSize > oldColumnSize){
+               JsonArray newJsonArr= def.get("columns").getAsJsonArray();
+               JsonArray oldJsonArr=old.get("columns").getAsJsonArray();
+               List<String> oldListColumns=new ArrayList<>();
+               for(int j=0;j<oldJsonArr.size();j++){
+                   oldListColumns.add(oldJsonArr.get(j).getAsJsonObject().get("name").getAsString());
+               }
+               List<String> newListColumns=new ArrayList<>();
+               Map<String,String> newColumnType=new HashMap<>();
+               for(int i=0;i<newJsonArr.size();i++){
+                   JsonObject newCurrent= newJsonArr.get(i).getAsJsonObject();
+                   newListColumns.add(newCurrent.get("name").getAsString());
+                   newColumnType.put(newCurrent.get("name").getAsString(),newCurrent.get("type").getAsString());
+               }
+               newListColumns.removeAll(oldListColumns);
+               int newAddColumn= newListColumns.size();
+               if(newAddColumn > 0){
                     sqlStr.append("ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"").append(" ");
-                    for(int i=oldColumnSize; i< newColumnSize;i++){
-                        JsonObject newColumn= newColumnArr.get(i).getAsJsonObject();
-                        String newColumnName=newColumn.get("name").getAsString();
-                        String newTypeName=newColumn.get("type").getAsString();
+                    for(int i=0; i< newAddColumn;i++){
+                        String newColumnName=newListColumns.get(i);
+                        String newTypeName=newColumnType.get(newColumnName);
                         String pgType= typeLengthFromMysqlToPlum(newTypeName,newColumnName,sql);
                         sqlStr.append("ADD COLUMN ").append(newColumnName).append(" ").append(pgType);
-                        if((i+1) != newColumnSize ){
+                        if((i+1) != newAddColumn ){
                             sqlStr.append(",");
                         }
                     }
