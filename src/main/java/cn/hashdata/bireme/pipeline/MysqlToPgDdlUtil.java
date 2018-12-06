@@ -212,10 +212,19 @@ public class MysqlToPgDdlUtil {
                 createSql.append(" \"").append(columnName.toLowerCase()).append("\" ").append(pgType).append(",");
             }
             createSqlStr = createSql.toString();
-            String primaryKey=null;
+            String primaryKey="\"id\"";
             if(columns.has("primary-key") && !columns.get("primary-key").isJsonNull()){
-                primaryKey= columns.get("primary-key").getAsJsonArray().toString();
-                primaryKey= primaryKey.substring(1,primaryKey.length()-1).replaceAll("\"","");
+               JsonArray  primaryKeyArr= columns.get("primary-key").getAsJsonArray();
+               int primarySize=primaryKeyArr.size();
+               StringBuilder stringBuilder=new StringBuilder();
+               for(int i=0;i<primarySize;i++){
+                  String value= primaryKeyArr.get(i).getAsString();
+                  stringBuilder.append("\"").append(value.toLowerCase()).append("\"");
+                  if( (i+1)!= primarySize){
+                      stringBuilder.append(",");
+                  }
+               }
+                primaryKey= stringBuilder.toString();
             }
             createSqlStr = createSqlStr + " PRIMARY KEY ("+primaryKey+")" + ")" +" DISTRIBUTED BY ("+primaryKey+") ; ";
         } catch (Exception e) {
