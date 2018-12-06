@@ -97,7 +97,6 @@ public class MaxwellPipeLine extends KafkaPipeLine {
       if (filter(record)) {
         return false;
       }
-
       Table table = cxt.tablesInfo.get(getMappedTableName(record));
 
       row.type = record.type;
@@ -216,7 +215,6 @@ public class MaxwellPipeLine extends KafkaPipeLine {
               logger.debug("非阻碍性",ignore);
           }
         }
-
         return BiremeUtility.jsonGetIgnoreCase(data, fieldName);
       }
     }
