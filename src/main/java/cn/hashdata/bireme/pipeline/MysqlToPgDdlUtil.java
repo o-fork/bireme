@@ -203,13 +203,13 @@ public class MysqlToPgDdlUtil {
             String database=columns.get("database").getAsString();
             String table=columns.get("table").getAsString();
             StringBuilder createSql=new StringBuilder("CREATE TABLE ");
-            createSql.append(database).append(".").append("\"").append(table).append("\"").append("(");
+            createSql.append("\"").append(database).append("\"").append(".").append("\"").append(table).append("\"").append("(");
             for(int i=0;i<columnsArray.size();i++){
                 JsonObject current=columnsArray.get(i).getAsJsonObject();
                 String type=current.get("type").getAsString();
                 String columnName=current.get("name").getAsString();
                 String pgType=typeLengthFromMysqlToPlum(type,columnName,sql);
-                createSql.append(" ").append(columnName).append(" ").append(pgType).append(",");
+                createSql.append(" \"").append(columnName.toLowerCase()).append("\" ").append(pgType).append(",");
             }
             createSqlStr = createSql.toString();
             String primaryKey=null;
@@ -308,7 +308,10 @@ public class MysqlToPgDdlUtil {
         }
         String numType= trimStr.indexOf("(") > 0 && trimStr.indexOf(")") > 0 ? trimStr.substring(trimStr.indexOf("("),trimStr.indexOf(")")+1) : "";
         if(hasLength){
-            return pgType+numType;
+            String hasLengType= pgType+numType;
+            if(StringUtils.isNotBlank(hasLengType)){
+                return hasLengType.replaceAll("\\s*","");
+            }
         }
         return pgType;
     }

@@ -10,7 +10,9 @@ import java.io.PipedOutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -216,8 +218,6 @@ public class ChangeLoader implements Callable<Long> {
    */
   protected void executeTask() throws BiremeException, InterruptedException {
 
-    logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
-
     if (!currentTask.delete.isEmpty() || (!optimisticMode && !currentTask.insert.isEmpty())) {
       int size = currentTask.delete.size();
 
@@ -238,6 +238,12 @@ public class ChangeLoader implements Callable<Long> {
       executeInsert(insertSet);
     }
 
+    //ddl语句
+    if(StringUtils.isNotBlank(currentTask.pgSql)){
+        logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
+        executeDdlSql(currentTask.pgSql);
+    }
+
     try {
       conn.commit();
     } catch (SQLException e) {
@@ -248,6 +254,35 @@ public class ChangeLoader implements Callable<Long> {
     for (CommitCallback callback : currentTask.callbacks) {
       callback.done();
     }
+  }
+  
+  /**
+   *  处理ddl语句
+   *@author: yangyang.li@ttpai.cn
+   * @param ddlSql
+   *@return
+   */
+  private void executeDdlSql(String ddlSql) {
+      List<String> listDdl=  Arrays.asList(ddlSql.split(";"));
+      if(CollectionUtils.isNotEmpty(listDdl)){
+          Statement statement=null;
+          try {
+              statement= conn.createStatement();
+              for(String ddl:listDdl){
+                  statement.execute(ddl);
+              }
+          } catch (Exception e) {
+                logger.error("-----------execute--ddl---error---ddlSQL:{}",ddlSql,e);
+          }finally {
+              if(statement != null){
+                  try {
+                      statement.close();
+                  } catch (SQLException e) {
+                      logger.error("close -----statement-------error",e);
+                  }
+              }
+          }
+      }
   }
 
   private Long executeDelete(Set<String> delete) throws BiremeException, InterruptedException {
