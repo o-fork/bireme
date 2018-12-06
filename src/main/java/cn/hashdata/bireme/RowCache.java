@@ -186,6 +186,7 @@ public class RowCache {
         switch (row.type) {
           case INSERT:
             task.insert.put(row.keys, row.tuple);
+            task.type = Row.RowType.INSERT;
             break;
           case DELETE:
             if (task.insert.containsKey(row.keys)) {
@@ -193,6 +194,7 @@ public class RowCache {
             }
 
             task.delete.add(row.keys);
+            task.type = Row.RowType.DELETE;
             break;
           case UPDATE:
             if (row.oldKeys != null) {
@@ -206,10 +208,12 @@ public class RowCache {
               task.delete.add(row.keys);
               task.insert.put(row.keys, row.tuple);
             }
+            task.type = Row.RowType.UPDATE;
             break;
            case TABLE_ALTER:
              if(StringUtils.isNotBlank(row.pgSql)){
                 task.pgSql = row.pgSql;
+                task.type = Row.RowType.TABLE_ALTER;
              }
                break;
         }

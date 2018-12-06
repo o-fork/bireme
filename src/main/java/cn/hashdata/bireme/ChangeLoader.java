@@ -241,7 +241,13 @@ public class ChangeLoader implements Callable<Long> {
     //ddl语句
     if(StringUtils.isNotBlank(currentTask.pgSql)){
         logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
-        executeDdlSql(currentTask.pgSql);
+        boolean success= executeDdlSql(currentTask.pgSql);
+        //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
+        if(success && currentTask.type == Row.RowType.TABLE_ALTER){
+
+
+
+        }
     }
 
     try {
@@ -262,7 +268,7 @@ public class ChangeLoader implements Callable<Long> {
    * @param ddlSql
    *@return
    */
-  private void executeDdlSql(String ddlSql) {
+  private Boolean executeDdlSql(String ddlSql) {
       List<String> listDdl=  Arrays.asList(ddlSql.split(";"));
       if(CollectionUtils.isNotEmpty(listDdl)){
           Statement statement=null;
@@ -273,16 +279,20 @@ public class ChangeLoader implements Callable<Long> {
               }
           } catch (Exception e) {
                 logger.error("-----------execute--ddl---error---ddlSQL:{}",ddlSql,e);
+                return false;
           }finally {
               if(statement != null){
                   try {
                       statement.close();
                   } catch (SQLException e) {
                       logger.error("close -----statement-------error",e);
+                      return false;
                   }
               }
           }
+          return true;
       }
+      return false;
   }
 
   private Long executeDelete(Set<String> delete) throws BiremeException, InterruptedException {
