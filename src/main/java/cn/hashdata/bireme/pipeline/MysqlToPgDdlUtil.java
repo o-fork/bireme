@@ -376,8 +376,13 @@ public class MysqlToPgDdlUtil {
         if(StringUtils.isBlank(trimStr)){
             return null;
         }
-        String numType= trimStr.indexOf("(") > 0 && trimStr.indexOf(")") > 0 ? trimStr.substring(trimStr.indexOf("("),trimStr.indexOf(")")+1) : "";
+        String numType= subStr.indexOf("(") > 0 && subStr.indexOf(")") > 0 ? subStr.substring(subStr.indexOf("(")+1,subStr.indexOf(")")) : "";
         if(hasLength){
+            if(StringUtils.isNumeric(numType)){
+                numType = "("+Double.valueOf(Double.valueOf(numType) * 2).intValue()+")";
+            }else{
+                numType = "(" + numType +")";
+            }
             String hasLengType= pgType+numType;
             if(StringUtils.isNotBlank(hasLengType)){
                 return hasLengType.replaceAll("\\s*","");
@@ -425,9 +430,9 @@ public class MysqlToPgDdlUtil {
         return table;
     }
 
-    public static void main(String[] args) {
-        String sql="ALTER TABLE `BOSS_ACCOUNT` MODIFY COLUMN `LYY_NAME_DD` VARCHAR (50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '这是测试列' AFTER `PASSWORD`";
-        System.out.println(findColumnCommit("LYY_NAME_DD",sql)) ;
+    public static void main(String[] args) throws Exception{
+        String sql="ALTER TABLE `BOSS_ACCOUNT` MODIFY COLUMN LYY_NAME_DD VARCHAR (50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '这是测试列' AFTER `PASSWORD`";
+        System.out.println(replaceColumnType("LYY_NAME_DD","VARCHAR",sql,true)) ;
 
     }
 
