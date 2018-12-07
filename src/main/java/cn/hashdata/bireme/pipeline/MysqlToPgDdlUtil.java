@@ -351,7 +351,7 @@ public class MysqlToPgDdlUtil {
                 default:
                     pgColumn = type;
         }
-        String pgType=  replaceColumnType(columnName,pgColumn,sql,hasLength);
+        String pgType=  replaceColumnType(columnName,pgColumn,sql.toUpperCase(),hasLength);
         return pgType;
     }
 
@@ -385,6 +385,26 @@ public class MysqlToPgDdlUtil {
         }
         return pgType;
     }
+    
+    
+    /**
+     *  解析sql中的备注(暂时没有用到)
+     *@author: yangyang.li@ttpai.cn
+     * @param columnName
+     * @param pgType
+     * @param mysqlStr
+     *@return
+     */
+    private static String findColumnCommit(String columnName,String mysqlStr){
+        mysqlStr = mysqlStr.toUpperCase();
+        String subStr=  mysqlStr.substring(mysqlStr.indexOf(columnName)+columnName.length(),mysqlStr.length());
+        String columnTypeStr= subStr.substring(0,subStr.indexOf(",") == -1 ? subStr.length() : subStr.indexOf(","));
+        if(StringUtils.isNotBlank(columnTypeStr) && (columnTypeStr.contains("COMMENT"))){
+            String commentStr=columnTypeStr.substring(columnTypeStr.indexOf("COMMENT")+7,columnTypeStr.length());
+            return commentStr;
+        }
+        return null;
+    }
 
 
 
@@ -406,20 +426,9 @@ public class MysqlToPgDdlUtil {
     }
 
     public static void main(String[] args) {
+        String sql="ALTER TABLE `BOSS_ACCOUNT` MODIFY COLUMN `LYY_NAME_DD` VARCHAR (50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '这是测试列' AFTER `PASSWORD`";
+        System.out.println(findColumnCommit("LYY_NAME_DD",sql)) ;
 
-//        String sql="CREATE TABLE `BOSS_VIOLATE_BAK` (\r\n `ID` int(11) NOT NULL AUTO_INCREMENT,\r\n `VIOLATE_REASON` varchar(60) DEFAULT NULL COMMENT '违约原因',\r\n `VIOLATE_TYPE` int(11) DEFAULT NULL COMMENT '违约类型',\r\n `VIOLATE_TYPE_NAME` varchar(20) DEFAULT NULL COMMENT '违约类型描述',\r\n PRIMARY KEY (`ID`)\r\n) ENGINE=InnoDB AUTO_INCREMENT=88 DEFAULT CHARSET=utf8 COMMENT='违约原因类型'";
-//        sql = sql.replaceAll("\r\n"," ").replaceAll("`","").replaceAll("/\\*.*\\*/","");
-//        System.out.println(sql);
-//        System.out.println(replaceColumnType("VIOLATE_REASON","varchare",sql,true));
-
-        String ss="{\"primary-key\":[\"ID\",\"NAME\"]}";
-
-        JsonParser jsonParser = new JsonParser();
-        JsonObject value = jsonParser.parse(ss).getAsJsonObject();
-
-        String arr= value.get("primary-key").getAsJsonArray().toString();
-        String sss= arr.substring(1,arr.length()-1).replaceAll("\"","");
-        System.out.println(sss);
     }
 
 }
