@@ -30,6 +30,40 @@ public class MysqlToPgDdlUtil {
 
 
     private static Logger logger= LogManager.getLogger("Bireme." + MysqlToPgDdlUtil.class);
+    private static List<String> intType=new ArrayList<>();
+    private static List<String> charType=new ArrayList<>();
+    private static List<String> bigType=new ArrayList<>();
+    private static List<String> dateType=new ArrayList<>();
+    private static List<String> floatType=new ArrayList<>();
+    private static List<String> timeType=new ArrayList<>();
+    static {
+        intType.add("tinyint");
+        intType.add("smallint");
+        intType.add("mediumint");
+        intType.add("int");
+        intType.add("bigint");
+        floatType.add("float");
+        floatType.add("double");
+        floatType.add("decimal");
+        charType.add("char");
+        charType.add("varchar");
+        bigType.add("tinyblob");
+        bigType.add("tinytext");
+        bigType.add("blob");
+        bigType.add("text");
+        bigType.add("mediumblob");
+        bigType.add("mediumtext");
+        bigType.add("longblob");
+        bigType.add("longtext");
+        dateType.add("date");
+        dateType.add("timestamp");
+        dateType.add("datetime");
+        timeType.add("time");
+        timeType.add("year");
+        timeType.add("enum");
+        timeType.add("set");
+    }
+
 
     /**
      * mysql ddl语句转 greenplum ddl语句
@@ -196,7 +230,8 @@ public class MysqlToPgDdlUtil {
                         if(oldCurr.get("name").getAsString().equals(newCurr.get("name").getAsString()) &&
                                 !oldCurr.get("type").getAsString().equals(newCurr.get("type").getAsString())    ){
                             afterObjType.addProperty("name",newCurr.get("name").getAsString());
-                            afterObjType.addProperty("type",newCurr.get("type").getAsString());
+                            afterObjType.addProperty("newType",newCurr.get("type").getAsString());
+                            afterObjType.addProperty("oldType",oldCurr.get("type").getAsString());
                             afterArrayType.add(afterObjType);
                         }
                     }
@@ -208,8 +243,14 @@ public class MysqlToPgDdlUtil {
                         for(int i=0;i<totalType ;i++ ){
                             JsonObject typeCurr= afterArrayType.get(i).getAsJsonObject();
                             String columnName=  typeCurr.get("name").getAsString();
-                            String pgType=typeLengthFromMysqlToPlum(typeCurr.get("type").getAsString(),columnName,sql);
-                            typeBuilder.append(" ALTER COLUMN ").append(columnName).append(" TYPE ").append(pgType);
+                            String oldType=  typeCurr.get("oldType").getAsString();
+                            String newType=  typeCurr.get("newType").getAsString();
+                            String newPgType= checkMysqlTypeToPgType(oldType,newType);
+                            if(StringUtils.isBlank(newPgType)){
+                                logger.info("--------------------不能由 '"+oldType+"' 转 '"+newType+"' 类型");
+                                continue;
+                            }
+                            typeBuilder.append(" ALTER COLUMN ").append(columnName).append(" TYPE ").append(newPgType);
                             if((i+1)!=totalType){
                                 typeBuilder.append(",");
                             }
@@ -232,14 +273,28 @@ public class MysqlToPgDdlUtil {
      * @param newType
      *@return
      */
-    private boolean checkMysqlType(String oldType,String newType){
-
-
-
-
-        
-        
-        return false;
+    private static String checkMysqlTypeToPgType(String oldType,String newType){
+        oldType = oldType.toLowerCase().trim();
+        newType = newType.toLowerCase().trim();
+        if(intType.contains(oldType) && intType.contains(newType)){
+            return null;
+        }
+        if(intType.contains(oldType) || timeType.contains(oldType)  ){
+            if(floatType.contains(newType)){
+                return "numeric(20,4)";
+            }
+            return "varchar(50)";
+        }
+        if(charType.contains(oldType) && charType.contains(newType)){
+            return "varchar(200)";
+        }
+        if(dateType.contains(oldType) && dateType.contains(newType)){
+            return "timestamp without time zone";
+        }
+        if(bigType.contains(newType)){
+            return "text";
+        }
+        return null;
     }
 
 
@@ -429,6 +484,12 @@ public class MysqlToPgDdlUtil {
         Table table=new Table(dbName,tableName,listKeyMap,conn,null);
         return table;
     }
+
+
+
+
+
+
 
     /*public static void main(String[] args) throws Exception{
         String sql="ALTER TABLE `BOSS_ACCOUNT` MODIFY COLUMN LYY_NAME_DD VARCHAR (50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '这是测试列' AFTER `PASSWORD`";
