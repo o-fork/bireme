@@ -134,6 +134,7 @@ public class MysqlToPgDdlUtil {
                            afterObjColumn.addProperty("oldName",oldCurr.get("name").getAsString());
                            afterObjColumn.addProperty("newName",newCurr.get("name").getAsString());
                            if( !oldCurr.get("type").getAsString().equals(newCurr.get("type").getAsString()) ){
+                               afterObjColumn.addProperty("oldType",oldCurr.get("type").getAsString());
                                afterObjColumn.addProperty("newType",newCurr.get("type").getAsString());
                            }
                            afterArrayColumnChange.add(afterObjColumn);
@@ -186,14 +187,11 @@ public class MysqlToPgDdlUtil {
                JsonArray newArrayColumns=def.getAsJsonArray("columns");
                if(oldArrayColumns.size() == newArrayColumns.size()){
                     JsonArray afterArrayType=new JsonArray();
-                    JsonArray afterArrayColumn=new JsonArray();
                     JsonObject afterObjType=null;
-                    JsonObject afterObjColumn=null;
                     for(int i=0;i < newArrayColumns.size() ; i++ ){
                         JsonObject newCurr=newArrayColumns.get(i).getAsJsonObject();
                         JsonObject oldCurr=oldArrayColumns.get(i).getAsJsonObject();
                         afterObjType=new JsonObject();
-                        afterObjColumn = new JsonObject();
                         //列名相同 且 类型不同。修改类型
                         if(oldCurr.get("name").getAsString().equals(newCurr.get("name").getAsString()) &&
                                 !oldCurr.get("type").getAsString().equals(newCurr.get("type").getAsString())    ){
@@ -201,25 +199,7 @@ public class MysqlToPgDdlUtil {
                             afterObjType.addProperty("type",newCurr.get("type").getAsString());
                             afterArrayType.add(afterObjType);
                         }
-                        // 列名不同。类型相同
-                       /* if(!oldCurr.get("name").getAsString().equals(newCurr.get("name").getAsString()) &&
-                                oldCurr.get("type").getAsString().equals(newCurr.get("type").getAsString())  ){
-                            afterObjColumn.addProperty("oldName",oldCurr.get("name").getAsString());
-                            afterObjColumn.addProperty("newName",newCurr.get("name").getAsString());
-                            afterArrayColumn.add(afterObjColumn);
-                        }*/
                     }
-                   /*if(afterArrayColumn.size() > 0){
-                       //修改列名字
-                       int totalColumn= afterArrayColumn.size();
-                       for(int i=0;i<totalColumn ;i++ ){
-                           JsonObject columnCurr= afterArrayColumn.get(i).getAsJsonObject();
-                           StringBuilder columnString=new StringBuilder();
-                           columnString.append("ALTER TABLE ").append(database).append("\"").append(newTable).append("\"").append(" RENAME ");
-                           columnString.append(columnCurr.get("oldName").getAsString()).append(" TO ").append(columnCurr.get("newName").getAsString()).append(";");
-                           sqlStr.append(columnString.toString());
-                       }
-                   }*/
                     if(afterArrayType.size() > 0 ){
                         //修改列类型
                         int totalType= afterArrayType.size();
@@ -243,6 +223,24 @@ public class MysqlToPgDdlUtil {
     }
 
 
+
+    /**
+     * 校验 列 类型是否能修改。
+     * 针对 pgDb
+     *@author: yangyang.li@ttpai.cn
+     * @param oldType
+     * @param newType
+     *@return
+     */
+    private boolean checkMysqlType(String oldType,String newType){
+
+
+
+
+        
+        
+        return false;
+    }
 
 
     /**
