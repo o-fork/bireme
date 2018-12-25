@@ -198,6 +198,7 @@ public class MysqlToPgDdlUtil {
                         String columnName= columnDefinition.getName().getSimpleName();
                         List<SQLExpr> sqlExprList=columnDefinition.getDataType().getArguments();
                         String columnType= mysqlTypeToPgType(columnDefinition.getDataType().getName(),sqlExprList);
+                        //修改列类型
                         modifyColumnSQL.append(" ALTER COLUMN ").append(columnName).append(" TYPE ").append(columnType).append(",");
                         //修改列注释
                         if(columnDefinition.getComment()!=null && columnDefinition.getComment() instanceof SQLCharExpr) {
@@ -215,8 +216,8 @@ public class MysqlToPgDdlUtil {
                     if(item instanceof MySqlAlterTableChangeColumn){
                         MySqlAlterTableChangeColumn changeColumn=(MySqlAlterTableChangeColumn)item;
                         String oldColumnName= changeColumn.getColumnName().getSimpleName();
-                        SQLColumnDefinition columnDefinition= changeColumn.getNewColumnDefinition();
-                        String newColumnName=columnDefinition.getName().getSimpleName();
+                        SQLColumnDefinition columnDefinitionChange= changeColumn.getNewColumnDefinition();
+                        String newColumnName=columnDefinitionChange.getName().getSimpleName();
                         // 修改列名字
                         StringBuilder changeColumnSQL=new StringBuilder();
                         changeColumnSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\" RENAME ").append(oldColumnName)
@@ -224,12 +225,23 @@ public class MysqlToPgDdlUtil {
                         changeColumnList.add(changeColumnSQL.toString());
                         //修改类型
                         StringBuilder changeColumnTypeSQL=new StringBuilder();
-                        List<SQLExpr> sqlExprList=columnDefinition.getDataType().getArguments();
-                        if(columnDefinition.getDataType()!=null && columnDefinition.getDataType().getName()!=null){
-                            String columnType= mysqlTypeToPgType(columnDefinition.getDataType().getName(),sqlExprList);
+                        List<SQLExpr> sqlExprList=columnDefinitionChange.getDataType().getArguments();
+                        if(columnDefinitionChange.getDataType()!=null && columnDefinitionChange.getDataType().getName()!=null){
+                            String columnType= mysqlTypeToPgType(columnDefinitionChange.getDataType().getName(),sqlExprList);
                             changeColumnTypeSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\" ").append("ALTER ")
                                     .append(" COLUMN ").append(newColumnName).append(" TYPE ").append(columnType).append(";");
                             changeColumnList.add(changeColumnTypeSQL.toString());
+                        }
+                        //修改列注释
+                        if(columnDefinitionChange.getComment()!=null && columnDefinitionChange.getComment() instanceof SQLCharExpr) {
+                            SQLCharExpr commentChange=(SQLCharExpr)columnDefinitionChange.getComment();
+                            if(StringUtils.isNotBlank(commentChange.getText())){
+                                StringBuilder modifyColumnComment=new StringBuilder();
+                                modifyColumnComment.append(" COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
+                                        .append("\"").append(newTable).append("\"").append(".").append("\"").append(newColumnName).append("\"")
+                                        .append(" IS ").append("'").append(commentChange.getText()).append("'").append(";");
+                                alterTableColumnComment.add(modifyColumnComment.toString());
+                            }
                         }
                     }
                     //修改表注释
