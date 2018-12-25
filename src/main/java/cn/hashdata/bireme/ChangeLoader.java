@@ -246,7 +246,7 @@ public class ChangeLoader implements Callable<Long> {
         logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
         success= executeDdlSql(currentTask.pgSql);
         //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
-        if(success && currentTask.type == Row.RowType.TABLE_ALTER){
+        if(success && currentTask.type == Row.RowType.TABLE_ALTER && currentTask.type == Row.RowType.TABLE_CREATE){
             String fullTableName=this.table.tableFullName;
             try {
                 Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,this.table.dbName,this.table.tableName);
