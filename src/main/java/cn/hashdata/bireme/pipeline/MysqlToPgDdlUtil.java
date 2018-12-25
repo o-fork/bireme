@@ -1,15 +1,32 @@
 package cn.hashdata.bireme.pipeline;
 
-import cn.hashdata.bireme.BiremeException;
-import cn.hashdata.bireme.BiremeUtility;
-import cn.hashdata.bireme.Context;
 import cn.hashdata.bireme.GetPrimaryKeys;
 import cn.hashdata.bireme.Row;
 import cn.hashdata.bireme.Table;
-import cn.hashdata.bireme.TableAlertTypeEnum;
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLName;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableAddColumn;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableDropColumnItem;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
+import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
+import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
+import com.alibaba.druid.sql.ast.statement.SQLTableElement;
+import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableChangeColumn;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyColumn;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableOption;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlRenameTableStatement;
+import com.alibaba.druid.util.JdbcConstants;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -77,7 +94,15 @@ public class MysqlToPgDdlUtil {
         if(StringUtils.isBlank(sqlMysql)){
             return "";
         }
+        sqlMysql = sqlMysql.replaceAll("\r\n"," ").replaceAll("`","").replaceAll("/\\*.*\\*/","");
+        List<SQLStatement> statementList= SQLUtils.parseStatements(sqlMysql, JdbcConstants.MYSQL);
+        if(statementList == null){
+            return "";
+        }
         String resultSQL="";
+        if(Row.RowType.TABLE_CREATE == rowType){
+            resultSQL=createTableSql(record.def,statementList);
+        }
         if(Row.RowType.DATABASE_DROP == rowType){
             String dropDb="DROP DATABASE ";
             resultSQL= dropDb + record.database;
@@ -89,14 +114,9 @@ public class MysqlToPgDdlUtil {
         if(Row.RowType.TABLE_DROP == rowType){
             resultSQL="DROP TABLE "+record.database+".\""+record.table+"\"";
         }
-        if(Row.RowType.TABLE_CREATE == rowType){
-            sqlMysql = sqlMysql.replaceAll("\r\n"," ").replaceAll("`","").replaceAll("/\\*.*\\*/","");
-            resultSQL=createTableSql(record.def,sqlMysql);
-        }
         if(Row.RowType.TABLE_ALTER == rowType){
-            sqlMysql = sqlMysql.replaceAll("\r\n"," ").replaceAll("`","").replaceAll("/\\*.*\\*/","");
             try {
-                resultSQL=tableAlterHandle(record.old,record.def,sqlMysql);
+                resultSQL=tableAlterHandle(record.old,record.def,statementList);
             } catch (Exception e) {
                 logger.error("Row.RowType.TABLE_ALTER 类型失败:sql-{}",sqlMysql,e);
             }
@@ -104,164 +124,172 @@ public class MysqlToPgDdlUtil {
         return resultSQL;
     }
 
-    /**
-     * 表修改
-     * 1.新增字段
-     * 2.修改字段
-     * 3.删除字段
-     *@author: yangyang.li@ttpai.cn
-     * @param def
-     * @param sql
-     *@return
-     */
-    private static String tableAlterHandle(JsonObject old,JsonObject def,String sql) throws Exception{
-        Integer isPattern=  TableAlertTypeEnum.isPattern(sql);
-        logger.info("---------------isPattern-------------:"+isPattern);
-        if(isPattern!=null && isPattern == 0){
-            return null;
-        }
+
+    private static String tableAlterHandle(JsonObject old,JsonObject def,List<SQLStatement> statementList) throws Exception{
+        StringBuilder alterSQL=new StringBuilder();
         String database=def.get("database").getAsString();
         String oldTable=old.get("table").getAsString();
         String newTable=def.get("table").getAsString();
-        StringBuilder sqlStr=new StringBuilder();
-       switch (isPattern){
-           case 1://table rename
-                sqlStr.append(" alter table ").append(database).append(".").append("\"").append(oldTable).append("\"").append(" rename to ")
-                .append("\"").append(newTable).append("\"");
-               break;
-           case 2://drop column
-               JsonArray jsonArr= def.get("columns").getAsJsonArray();
-               JsonArray oldArr=old.get("columns").getAsJsonArray();
-               List<String> oldListColumn=new ArrayList<>();
-               for(int j=0;j<oldArr.size();j++){
-                   oldListColumn.add(oldArr.get(j).getAsJsonObject().get("name").getAsString());
-               }
-               List<String> newListColumn=new ArrayList<>();
-               for(int i=0;i<jsonArr.size();i++){
-                   newListColumn.add(jsonArr.get(i).getAsJsonObject().get("name").getAsString());
-               }
-               //删除
-               oldListColumn.removeAll(newListColumn);
-               int arrSize= oldListColumn.size();
-               if(arrSize > 0){
-                   sqlStr.append(" ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"");
-                   for(int i=0;i<arrSize;i++){
-                       sqlStr.append(" DROP COLUMN ").append(oldListColumn.get(i));
-                       if((i+1) != arrSize){
-                           sqlStr.append(",");
-                       }
-                   }
-               }
-               break;
-           case 3://table COLUMN-》 change
-               JsonArray oldArrayColumnsChange=old.getAsJsonArray("columns");
-               JsonArray newArrayColumnsChange=def.getAsJsonArray("columns");
-               if(oldArrayColumnsChange.size() == newArrayColumnsChange.size()){
-                   JsonArray afterArrayColumnChange=new JsonArray();
-                   JsonObject afterObjColumn=null;
-                   for(int i=0;i < newArrayColumnsChange.size() ; i++ ){
-                       JsonObject newCurr=newArrayColumnsChange.get(i).getAsJsonObject();
-                       JsonObject oldCurr=oldArrayColumnsChange.get(i).getAsJsonObject();
-                       afterObjColumn = new JsonObject();
-                       // 列名不同。类型相同
-                       if(!oldCurr.get("name").getAsString().equals(newCurr.get("name").getAsString())  ){
-                           afterObjColumn.addProperty("oldName",oldCurr.get("name").getAsString());
-                           afterObjColumn.addProperty("newName",newCurr.get("name").getAsString());
-                           if( !oldCurr.get("type").getAsString().equals(newCurr.get("type").getAsString()) ){
-                               afterObjColumn.addProperty("oldType",oldCurr.get("type").getAsString());
-                               afterObjColumn.addProperty("newType",newCurr.get("type").getAsString());
-                           }
-                           afterArrayColumnChange.add(afterObjColumn);
-                       }
-                   }
-                   if(afterArrayColumnChange.size() > 0){
-                       //修改列名字
-                       int totalColumnChange= afterArrayColumnChange.size();
-                       for(int i=0;i<totalColumnChange ;i++ ){
-                           JsonObject columnCurr= afterArrayColumnChange.get(i).getAsJsonObject();
-                           StringBuilder columnString=new StringBuilder();
-                           columnString.append("ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"").append(" RENAME ");
-                           columnString.append(columnCurr.get("oldName").getAsString()).append(" TO ").append(columnCurr.get("newName").getAsString()).append(";");
-                           sqlStr.append(columnString.toString());
-                       }
-                   }
-               }
-               break;
-           case 4://add column
-               JsonArray newJsonArr= def.get("columns").getAsJsonArray();
-               JsonArray oldJsonArr=old.get("columns").getAsJsonArray();
-               List<String> oldListColumns=new ArrayList<>();
-               for(int j=0;j<oldJsonArr.size();j++){
-                   oldListColumns.add(oldJsonArr.get(j).getAsJsonObject().get("name").getAsString());
-               }
-               List<String> newListColumns=new ArrayList<>();
-               Map<String,String> newColumnType=new HashMap<>();
-               for(int i=0;i<newJsonArr.size();i++){
-                   JsonObject newCurrent= newJsonArr.get(i).getAsJsonObject();
-                   newListColumns.add(newCurrent.get("name").getAsString());
-                   newColumnType.put(newCurrent.get("name").getAsString(),newCurrent.get("type").getAsString());
-               }
-               newListColumns.removeAll(oldListColumns);
-               int newAddColumn= newListColumns.size();
-               if(newAddColumn > 0){
-                    sqlStr.append("ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"").append(" ");
-                    for(int i=0; i< newAddColumn;i++){
-                        String newColumnName=newListColumns.get(i);
-                        String newTypeName=newColumnType.get(newColumnName);
-                        String pgType= typeLengthFromMysqlToPlum(newTypeName,newColumnName,sql);
-                        sqlStr.append("ADD COLUMN ").append(newColumnName).append(" ").append(pgType);
-                        if((i+1) != newAddColumn ){
-                            sqlStr.append(",");
+        for(SQLStatement statement:statementList){
+            //rename table
+            if(statement instanceof MySqlRenameTableStatement){
+                MySqlRenameTableStatement renameTableStatement=(MySqlRenameTableStatement)statement;
+                List<MySqlRenameTableStatement.Item> listItems=renameTableStatement.getItems();
+                for(MySqlRenameTableStatement.Item item:listItems){
+                    StringBuilder renameSQL=new StringBuilder();
+                    String beforeName= item.getName().getSimpleName();
+                    String afterName= item.getTo().getSimpleName();
+                    renameSQL.append("alter table ").append(database).append(".\"").append(beforeName.toUpperCase()).append("\"").append(" ")
+                            .append(" rename to ").append("\"").append(afterName).append("\"").append(";");
+                    alterSQL.append(renameSQL.toString());
+                }
+                return alterSQL.toString();
+            }
+            if(statement instanceof SQLAlterTableStatement){
+                SQLAlterTableStatement alterTableStatement=(SQLAlterTableStatement)statement;
+                List<SQLAlterTableItem> listAlter=alterTableStatement.getItems();
+                List<String> addColumnList=new ArrayList<>();
+                List<String> changeColumnList=new ArrayList<>();
+                List<String> alterTableColumnComment=new ArrayList<>();
+                String addColumnSQLStr=null;
+                String dropColumnSQLStr=null;
+                String modifyColumnSQLStr=null;
+                StringBuilder  addColumnSQL=new StringBuilder();
+                addColumnSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\"").append(" ");
+                StringBuilder dropColumnSQL=new StringBuilder();
+                dropColumnSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\" ");
+                StringBuilder modifyColumnSQL=new StringBuilder();
+                modifyColumnSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\"").append(" ");
+
+                for(SQLAlterTableItem item:listAlter){
+                    //保存column
+                    if(item instanceof SQLAlterTableAddColumn){
+                        SQLAlterTableAddColumn addColumn=(SQLAlterTableAddColumn)item;
+                        List<SQLColumnDefinition> listColumns= addColumn.getColumns();
+                        for(SQLColumnDefinition columnDefinition:listColumns){
+                            String columnName= columnDefinition.getName().getSimpleName();
+                            List<SQLExpr> listExpr=columnDefinition.getDataType().getArguments();
+                            String columnType=mysqlTypeToPgType(columnDefinition.getDataType().getName(),listExpr);
+                            addColumnSQL.append(" ADD COLUMN ").append(columnName).append(" ").append(columnType).append(",");
+                            //----------备注-------------------------
+                            if(columnDefinition.getCharsetExpr() instanceof SQLCharExpr){
+                                SQLCharExpr charExpr=(SQLCharExpr)columnDefinition.getCharsetExpr();
+                                StringBuilder commentSQL=new StringBuilder();
+                                commentSQL.append("COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
+                                        .append("\"").append(newTable).append("\"").append(".").append("\"").append(columnName).append("\"")
+                                        .append(" IS ").append("'").append(charExpr.getText()).append("'").append(";");
+                                addColumnList.add(commentSQL.toString());
+                            }
+                        }
+                    }
+                    //删除 column
+                    if(item instanceof SQLAlterTableDropColumnItem){
+                        SQLAlterTableDropColumnItem dropColumnItem=(SQLAlterTableDropColumnItem)item;
+                        List<SQLName> listSQLName= dropColumnItem.getColumns();
+                        for(SQLName sqlName:listSQLName){
+                            String removeColumn= sqlName.getSimpleName();
+                            dropColumnSQL.append(" DROP COLUMN ").append(removeColumn).append(",");
+                        }
+                    }
+                    //modify column
+                    if(item instanceof MySqlAlterTableModifyColumn){
+                        MySqlAlterTableModifyColumn modifyColumn=(MySqlAlterTableModifyColumn)item;
+                        SQLColumnDefinition columnDefinition=  modifyColumn.getNewColumnDefinition();
+                        String columnName= columnDefinition.getName().getSimpleName();
+                        List<SQLExpr> sqlExprList=columnDefinition.getDataType().getArguments();
+                        String columnType= mysqlTypeToPgType(columnDefinition.getDataType().getName(),sqlExprList);
+                        modifyColumnSQL.append(" ALTER COLUMN ").append(columnName).append(" TYPE ").append(columnType).append(",");
+                        //修改列注释
+                        if(columnDefinition.getComment()!=null && columnDefinition.getComment() instanceof SQLCharExpr) {
+                            SQLCharExpr comment=(SQLCharExpr)columnDefinition.getComment();
+                            if(StringUtils.isNotBlank(comment.getText())){
+                                StringBuilder modifyColumnComment=new StringBuilder();
+                                modifyColumnComment.append(" COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
+                                        .append("\"").append(newTable).append("\"").append(".").append("\"").append(columnName).append("\"")
+                                        .append(" IS ").append("'").append(comment.getText()).append("'").append(";");
+                                alterTableColumnComment.add(modifyColumnComment.toString());
+                            }
+                        }
+                    }
+                    //修改列名字
+                    if(item instanceof MySqlAlterTableChangeColumn){
+                        MySqlAlterTableChangeColumn changeColumn=(MySqlAlterTableChangeColumn)item;
+                        String oldColumnName= changeColumn.getColumnName().getSimpleName();
+                        SQLColumnDefinition columnDefinition= changeColumn.getNewColumnDefinition();
+                        String newColumnName=columnDefinition.getName().getSimpleName();
+                        // 修改列名字
+                        StringBuilder changeColumnSQL=new StringBuilder();
+                        changeColumnSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\" RENAME ").append(oldColumnName)
+                                .append(" ").append(newColumnName).append(";");
+                        changeColumnList.add(changeColumnSQL.toString());
+                        //修改类型
+                        StringBuilder changeColumnTypeSQL=new StringBuilder();
+                        List<SQLExpr> sqlExprList=columnDefinition.getDataType().getArguments();
+                        if(columnDefinition.getDataType()!=null && columnDefinition.getDataType().getName()!=null){
+                            String columnType= mysqlTypeToPgType(columnDefinition.getDataType().getName(),sqlExprList);
+                            changeColumnTypeSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\" ").append("ALTER ")
+                                    .append(" COLUMN ").append(newColumnName).append(" TYPE ").append(columnType).append(";");
+                            changeColumnList.add(changeColumnTypeSQL.toString());
+                        }
+                    }
+                    //修改表注释
+                    if(item instanceof MySqlAlterTableOption){
+                        MySqlAlterTableOption alterTableOption=(MySqlAlterTableOption)item;
+                        if(alterTableOption.getValue()!=null && alterTableOption.getValue() instanceof SQLIdentifierExpr){
+                            SQLIdentifierExpr  sqlIdentifierExpr=(SQLIdentifierExpr)alterTableOption.getValue();
+                            StringBuilder alterTableComment=new StringBuilder();
+                            alterTableComment.append("COMMENT ON TABLE \"").append(database).append("\".").append("\"").append(newTable).append("\"")
+                                    .append(" IS '").append(sqlIdentifierExpr.getName()).append("';");
+                            alterTableColumnComment.add(alterTableComment.toString());
                         }
                     }
                 }
-               break;
-           case 5://modify column type
-               JsonArray oldArrayColumns=old.getAsJsonArray("columns");
-               JsonArray newArrayColumns=def.getAsJsonArray("columns");
-               if(oldArrayColumns.size() == newArrayColumns.size()){
-                    JsonArray afterArrayType=new JsonArray();
-                    JsonObject afterObjType=null;
-                    for(int i=0;i < newArrayColumns.size() ; i++ ){
-                        JsonObject newCurr=newArrayColumns.get(i).getAsJsonObject();
-                        JsonObject oldCurr=oldArrayColumns.get(i).getAsJsonObject();
-                        afterObjType=new JsonObject();
-                        //列名相同 且 类型不同。修改类型
-                        if(oldCurr.get("name").getAsString().equals(newCurr.get("name").getAsString()) &&
-                                !oldCurr.get("type").getAsString().equals(newCurr.get("type").getAsString())    ){
-                            afterObjType.addProperty("name",newCurr.get("name").getAsString());
-                            afterObjType.addProperty("newType",newCurr.get("type").getAsString());
-                            afterObjType.addProperty("oldType",oldCurr.get("type").getAsString());
-                            afterArrayType.add(afterObjType);
-                        }
+                addColumnSQLStr=addColumnSQL.toString();
+                if(StringUtils.isNotBlank(addColumnSQLStr) && addColumnSQLStr.endsWith(",")){
+                    addColumnSQLStr = addColumnSQLStr.substring(0,addColumnSQLStr.length());
+                }
+                dropColumnSQLStr=dropColumnSQL.toString();
+                if(StringUtils.isNotBlank(dropColumnSQLStr) && dropColumnSQLStr.endsWith(",")){
+                    dropColumnSQLStr = dropColumnSQLStr.substring(0,dropColumnSQLStr.length());
+                }
+                if(StringUtils.isNotBlank(addColumnSQLStr)){
+                    alterSQL.append(addColumnSQLStr).append(";");
+                }
+                modifyColumnSQLStr = modifyColumnSQL.toString();
+                if(StringUtils.isNotBlank(modifyColumnSQLStr) && modifyColumnSQLStr.endsWith(",")){
+                    modifyColumnSQLStr = modifyColumnSQLStr.substring(0,modifyColumnSQLStr.length());
+                }
+                if(CollectionUtils.isNotEmpty(addColumnList)){
+                    for(String comment:addColumnList){
+                        alterSQL.append(comment);
                     }
-                    if(afterArrayType.size() > 0 ){
-                        //修改列类型
-                        int totalType= afterArrayType.size();
-                        StringBuilder typeBuilder=new StringBuilder();
-                        typeBuilder.append("ALTER TABLE ").append(database).append(".").append("\"").append(newTable).append("\"");
-                        for(int i=0;i<totalType ;i++ ){
-                            JsonObject typeCurr= afterArrayType.get(i).getAsJsonObject();
-                            String columnName=  typeCurr.get("name").getAsString();
-                            String oldType=  typeCurr.get("oldType").getAsString();
-                            String newType=  typeCurr.get("newType").getAsString();
-                            String newPgType= checkMysqlTypeToPgType(oldType,newType);
-                            if(StringUtils.isBlank(newPgType)){
-                                logger.info("--------------------不能由 '"+oldType+"' 转 '"+newType+"' 类型");
-                                continue;
-                            }
-                            typeBuilder.append(" ALTER COLUMN ").append(columnName).append(" TYPE ").append(newPgType);
-                            if((i+1)!=totalType){
-                                typeBuilder.append(",");
-                            }
-                        }
-                        sqlStr.append(typeBuilder.toString());
+                }
+                if(StringUtils.isNotBlank(dropColumnSQLStr)){
+                    alterSQL.append(dropColumnSQLStr).append(";");
+                }
+                if(StringUtils.isNotBlank(modifyColumnSQLStr)){
+                    alterSQL.append(modifyColumnSQLStr).append(";");
+                }
+                if(CollectionUtils.isNotEmpty(changeColumnList)){
+                    for(String changeSql:changeColumnList){
+                        alterSQL.append(changeSql);
                     }
-               }
-               break;
-       }
-        return sqlStr.toString();
+                }
+                if(CollectionUtils.isNotEmpty(alterTableColumnComment)){
+                    for(String alterTableComment:alterTableColumnComment){
+                        alterSQL.append(alterTableComment);
+                    }
+                }
+                return alterSQL.toString();
+            }
+        }
+        return null;
     }
+
+
+
+
+
 
 
 
@@ -305,10 +333,10 @@ public class MysqlToPgDdlUtil {
      * @param sql
      *@return
      */
-    private static String createTableSql(JsonObject columns,String sql){
+    private static String createTableSql(JsonObject columns,List<SQLStatement> statementList){
         String createSqlStr= null;
         try {
-            if(columns== null || !columns.has("columns") || StringUtils.isBlank(sql)){
+            if(columns== null || !columns.has("columns") || statementList.isEmpty()){
                 return null;
             }
             JsonArray columnsArray= columns.get("columns").getAsJsonArray();
@@ -319,153 +347,62 @@ public class MysqlToPgDdlUtil {
             String table=columns.get("table").getAsString();
             StringBuilder createSql=new StringBuilder("CREATE TABLE ");
             createSql.append("\"").append(database).append("\"").append(".").append("\"").append(table).append("\"").append("(");
-            for(int i=0;i<columnsArray.size();i++){
-                JsonObject current=columnsArray.get(i).getAsJsonObject();
-                String type=current.get("type").getAsString();
-                String columnName=current.get("name").getAsString();
-                String pgType=typeLengthFromMysqlToPlum(type,columnName,sql);
-                createSql.append(" \"").append(columnName.toLowerCase()).append("\" ").append(pgType).append(",");
+            for(SQLStatement statement:statementList){
+                if(statement instanceof MySqlCreateTableStatement){//创建表
+                    List<String> listKey=new ArrayList<>();
+                    MySqlCreateTableStatement createTableDDl=(MySqlCreateTableStatement)statement;
+                    List<SQLTableElement> listColumns=  createTableDDl.getTableElementList();
+                    List<String> listComment=new ArrayList<>();
+                    for(SQLTableElement column:listColumns){
+                        if(column instanceof SQLColumnDefinition){
+                            SQLColumnDefinition currentItems=(SQLColumnDefinition)column;
+                            String columnName=currentItems.getNameAsString();
+                            List<SQLExpr> listExpr=currentItems.getDataType().getArguments();
+                            String columnType=mysqlTypeToPgType(currentItems.getDataType().getName(),listExpr);
+                            createSql.append("\"").append(columnName.toLowerCase()).append("\"").append(" ").append(columnType).append(",");
+
+                            //----------备注----------------
+                           if(currentItems.getCharsetExpr() instanceof SQLCharExpr){
+                               StringBuilder commentSb=new StringBuilder();
+                               SQLCharExpr sqlCharExpr=(SQLCharExpr)currentItems.getCharsetExpr();
+                               String comment=sqlCharExpr.getText();
+                               commentSb.append("COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
+                                       .append("\"").append(table).append("\"").append(".").append("\"").append(columnName).append("\"")
+                                       .append(" IS ").append("'").append(comment).append("'").append(";");
+                               listComment.add(commentSb.toString());
+                           }
+                        }
+                        if(column instanceof MySqlPrimaryKey){
+                            MySqlPrimaryKey primaryKey=(MySqlPrimaryKey)column;
+                            List<SQLSelectOrderByItem> listPrimaryKey= primaryKey.getColumns();
+                            for(SQLSelectOrderByItem item:listPrimaryKey){
+                                if(item.getExpr() instanceof SQLIdentifierExpr){
+                                    SQLIdentifierExpr identifierExpr=(SQLIdentifierExpr)item.getExpr();
+                                    listKey.add("\""+identifierExpr.getName().toLowerCase()+"\"");
+                                }
+                            }
+                        }
+                    }
+                    createSql.append(" CONSTRAINT ").append(table).append("_pkey").append(" PRIMARY KEY ").append("(")
+                            .append(StringUtils.join(listKey,",")).append(")");
+                    createSql.append(")");
+                    createSql.append(";");
+                    //---------------备注----------------------
+                    if(CollectionUtils.isNotEmpty(listComment)){
+                        for(String comment:listComment){
+                            if(StringUtils.isNotBlank(comment)){
+                                createSql.append(comment);
+                            }
+                        }
+                    }
+                    createSqlStr = createSql.toString();
+                }
             }
-            createSqlStr = createSql.toString();
-            String primaryKey="\"id\"";
-            if(columns.has("primary-key") && !columns.get("primary-key").isJsonNull()){
-               JsonArray  primaryKeyArr= columns.get("primary-key").getAsJsonArray();
-               int primarySize=primaryKeyArr.size();
-               StringBuilder stringBuilder=new StringBuilder();
-               for(int i=0;i<primarySize;i++){
-                  String value= primaryKeyArr.get(i).getAsString();
-                  stringBuilder.append("\"").append(value.toLowerCase()).append("\"");
-                  if( (i+1)!= primarySize){
-                      stringBuilder.append(",");
-                  }
-               }
-                primaryKey= stringBuilder.toString();
-            }
-            createSqlStr = createSqlStr + " PRIMARY KEY ("+primaryKey+")" + ")" +" DISTRIBUTED BY ("+primaryKey+") ; ";
         } catch (Exception e) {
             logger.error("构建postgreSQL 语句异常：",e);
         }
         return createSqlStr;
     }
-
-
-    /**
-     * 
-     *@author: yangyang.li@ttpai.cn
-     * @param type  mysql 列类型转 greenplum 列类型
-     *@return
-     */
-    private static String typeLengthFromMysqlToPlum(String type,String columnName,String sql) throws Exception{
-        String pgColumn=null;
-        Boolean hasLength=true;
-        switch (type.toUpperCase()){
-            case "MEDIUMINT":
-            case "INT":
-            case "INTEGER":
-            case "TINYINT":
-            case "SMALLINT":
-            case "BIGINT":
-                hasLength = false;
-                pgColumn="bigint";
-                break;
-            case "FLOAT":
-            case "DOUBLE":
-            case "DECIMAL":
-                pgColumn="numeric";
-                break;
-            case "DATE":
-            case "TIME":
-                hasLength = false;
-                pgColumn=type;
-                break;
-            case "DATETIME":
-            case "TIMESTAMP":
-                hasLength = false;
-                pgColumn="timestamp without time zone";
-                break;
-            case "CHAR":
-            case "VARCHAR":
-                pgColumn="varchar";
-                break;
-            case "BLOB":
-            case "TEXT":
-            case "MEDIUMBLOB":
-            case "MEDIUMTEXT":
-            case "LONGBLOB":
-            case "LONGTEXT":
-            case "TINYBLOB":
-            case "TINYTEXT":
-                hasLength = false;
-                pgColumn = "text";
-                break;
-            case "ENUM":
-            case "SET":
-                hasLength = false;
-                pgColumn="enum";
-                break;
-                default:
-                    pgColumn = type;
-        }
-        String pgType=  replaceColumnType(columnName,pgColumn,sql.toUpperCase(),hasLength);
-        return pgType;
-    }
-
-
-    /**
-     *  解析sql中字段的类型
-     *@author: yangyang.li@ttpai.cn
-     * @param columnName
-     * @param mysqlStr
-     *@return
-     */
-    private static String replaceColumnType(String columnName,String pgType,String mysqlStr,Boolean hasLength) throws Exception{
-        String subStr=  mysqlStr.substring(mysqlStr.indexOf(columnName)+columnName.length(),mysqlStr.length());
-        if(subStr.startsWith("`") || subStr.startsWith(" ")){
-            subStr = subStr.substring(1,subStr.length()).trim();
-        }
-        String columnTypeStr= subStr.substring(0,subStr.indexOf(",") == -1 ? subStr.length() : subStr.indexOf(","));
-        if(columnTypeStr.indexOf(" ") > 0){
-            columnTypeStr = columnTypeStr.substring(0,columnTypeStr.indexOf(" ") == -1 ? columnTypeStr.length() : columnTypeStr.indexOf(" "));
-        }
-        String trimStr=columnTypeStr!=null ? columnTypeStr.trim() : "";
-        if(StringUtils.isBlank(trimStr)){
-            return null;
-        }
-        String numType= subStr.indexOf("(") > 0 && subStr.indexOf(")") > 0 ? subStr.substring(subStr.indexOf("(")+1,subStr.indexOf(")")) : "";
-        if(hasLength){
-            if(StringUtils.isNumeric(numType.trim())){
-                numType = "("+Double.valueOf(Double.valueOf(numType) * 2).intValue()+")";
-            }else{
-                numType = "(" + numType +")";
-            }
-            String hasLengType= pgType+numType;
-            if(StringUtils.isNotBlank(hasLengType)){
-                return hasLengType.replaceAll("\\s*","");
-            }
-        }
-        return pgType;
-    }
-    
-    
-    /**
-     *  解析sql中的备注(暂时没有用到)
-     *@author: yangyang.li@ttpai.cn
-     * @param columnName
-     * @param pgType
-     * @param mysqlStr
-     *@return
-     */
-    private static String findColumnCommit(String columnName,String mysqlStr){
-        mysqlStr = mysqlStr.toUpperCase();
-        String subStr=  mysqlStr.substring(mysqlStr.indexOf(columnName)+columnName.length(),mysqlStr.length());
-        String columnTypeStr= subStr.substring(0,subStr.indexOf(",") == -1 ? subStr.length() : subStr.indexOf(","));
-        if(StringUtils.isNotBlank(columnTypeStr) && (columnTypeStr.contains("COMMENT"))){
-            String commentStr=columnTypeStr.substring(columnTypeStr.indexOf("COMMENT")+7,columnTypeStr.length());
-            return commentStr;
-        }
-        return null;
-    }
-
 
 
     /**
@@ -487,7 +424,75 @@ public class MysqlToPgDdlUtil {
 
 
 
-
+    /**
+     *
+     *@author: yangyang.li@ttpai.cn
+     * @param
+     *@return
+     */
+    private static String mysqlTypeToPgType(String dataType,List<SQLExpr> sqlExprList) throws Exception{
+        String pgColumn="";
+        StringBuilder length=null;
+        if(CollectionUtils.isNotEmpty(sqlExprList)){
+            length=new StringBuilder("(");
+            for(SQLExpr sqlExpr:sqlExprList){
+                if( sqlExpr instanceof SQLIntegerExpr){
+                    SQLIntegerExpr colum=(SQLIntegerExpr)sqlExpr;
+                    if( colum != null && colum.getNumber()!=null && colum.getNumber().intValue() > 0 ){
+                        length.append( colum.getNumber().intValue()*2);
+                        if(sqlExprList.size() > 1){
+                            length.append(",");
+                        }
+                    }
+                }
+            }
+            length.append(")");
+        }
+        switch (dataType.toUpperCase()){
+            case "MEDIUMINT":
+            case "INT":
+            case "INTEGER":
+            case "TINYINT":
+            case "SMALLINT":
+            case "BIGINT":
+                pgColumn="bigint";
+                break;
+            case "FLOAT":
+            case "DOUBLE":
+            case "DECIMAL":
+                pgColumn="numeric"+ length!=null ? length.toString() : "";
+                break;
+            case "DATE":
+            case "TIME":
+                pgColumn=dataType;
+                break;
+            case "DATETIME":
+            case "TIMESTAMP":
+                pgColumn="timestamp without time zone";
+                break;
+            case "CHAR":
+            case "VARCHAR":
+                pgColumn="varchar"+ length!=null ? length.toString() : "";
+                break;
+            case "BLOB":
+            case "TEXT":
+            case "MEDIUMBLOB":
+            case "MEDIUMTEXT":
+            case "LONGBLOB":
+            case "LONGTEXT":
+            case "TINYBLOB":
+            case "TINYTEXT":
+                pgColumn = "text";
+                break;
+            case "ENUM":
+            case "SET":
+                pgColumn="enum";
+                break;
+            default:
+                pgColumn = dataType;
+        }
+        return pgColumn;
+    }
 
 
 
