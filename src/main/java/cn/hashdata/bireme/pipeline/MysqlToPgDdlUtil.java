@@ -498,7 +498,7 @@ public class MysqlToPgDdlUtil {
             case "FLOAT":
             case "DOUBLE":
             case "DECIMAL":
-                pgColumn="numeric"+ length!=null ? length.toString() : "";
+                pgColumn="numeric"+ (length!=null ? length.toString() : "");
                 break;
             case "DATE":
             case "TIME":
@@ -510,7 +510,7 @@ public class MysqlToPgDdlUtil {
                 break;
             case "CHAR":
             case "VARCHAR":
-                pgColumn="varchar"+ length!=null ? length.toString() : "";
+                pgColumn="varchar"+ (length!=null ? length.toString() : "");
                 break;
             case "BLOB":
             case "TEXT":
