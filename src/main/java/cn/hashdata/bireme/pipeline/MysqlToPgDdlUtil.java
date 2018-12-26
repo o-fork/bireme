@@ -470,9 +470,9 @@ public class MysqlToPgDdlUtil {
      */
     private static String mysqlTypeToPgType(String dataType,List<SQLExpr> sqlExprList) throws Exception{
         String pgColumn="";
-        StringBuilder length=null;
+        String lengthStr=null;
         if(CollectionUtils.isNotEmpty(sqlExprList)){
-            length=new StringBuilder("(");
+            StringBuilder length=new StringBuilder("(");
             for(SQLExpr sqlExpr:sqlExprList){
                 if( sqlExpr instanceof SQLIntegerExpr){
                     SQLIntegerExpr colum=(SQLIntegerExpr)sqlExpr;
@@ -484,7 +484,11 @@ public class MysqlToPgDdlUtil {
                     }
                 }
             }
-            length.append(")");
+            lengthStr=length.toString();
+            if(StringUtils.isNotBlank(lengthStr) && lengthStr.endsWith(",")){
+                lengthStr = lengthStr.substring(0,lengthStr.length()-1);
+            }
+            lengthStr = lengthStr +")";
         }
         switch (dataType.toUpperCase()){
             case "MEDIUMINT":
@@ -498,7 +502,7 @@ public class MysqlToPgDdlUtil {
             case "FLOAT":
             case "DOUBLE":
             case "DECIMAL":
-                pgColumn="numeric"+ (length!=null ? length.toString() : "");
+                pgColumn="numeric"+ (lengthStr!=null ? lengthStr : "");
                 break;
             case "DATE":
             case "TIME":
@@ -510,7 +514,7 @@ public class MysqlToPgDdlUtil {
                 break;
             case "CHAR":
             case "VARCHAR":
-                pgColumn="varchar"+ (length!=null ? length.toString() : "");
+                pgColumn="varchar"+ (lengthStr!=null ? lengthStr : "");
                 break;
             case "BLOB":
             case "TEXT":
