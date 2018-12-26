@@ -225,7 +225,7 @@ public class MysqlToPgDdlUtil {
                         // 修改列名字
                         StringBuilder changeColumnSQL=new StringBuilder();
                         changeColumnSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\" RENAME ").append(oldColumnName)
-                                .append(" ").append(newColumnName).append(";");
+                                .append(" TO ").append(newColumnName).append(";");
                         changeColumnList.add(changeColumnSQL.toString());
                         //修改类型
                         StringBuilder changeColumnTypeSQL=new StringBuilder();
