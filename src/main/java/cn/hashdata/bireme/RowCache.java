@@ -15,6 +15,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import cn.hashdata.bireme.pipeline.PipeLine;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * An in-memory cache for {@link Row}. We use cache to merge and load change data in batch.
@@ -25,7 +27,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class RowCache {
   static final protected Long TIMEOUT_MS = 1000L;
-
+  private static Logger logger = LogManager.getLogger("Bireme." + RowCache.class);
   public Context cxt;
   public String tableName;
   public PipeLine pipeLine;
@@ -214,6 +216,7 @@ public class RowCache {
            case TABLE_CREATE:
            case DATABASE_DROP:
            case TABLE_DROP:
+             logger.error("---------loakTask---------type:{}",row.type);
              if(StringUtils.isNotBlank(row.pgSql)){
                 task.pgSql = row.pgSql;
                 task.type = Row.RowType.TABLE_ALTER;

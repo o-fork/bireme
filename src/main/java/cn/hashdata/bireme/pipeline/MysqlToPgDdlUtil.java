@@ -320,8 +320,6 @@ public class MysqlToPgDdlUtil {
                     String newModifyType= checkMysqlTypeToPgType(oldType,newType);
                     if(newModifyType!=null){
                         return newModifyType;
-                    }else{
-                        newType = oldType;
                     }
                 }
             }
@@ -343,7 +341,7 @@ public class MysqlToPgDdlUtil {
         oldType = oldType.toLowerCase().trim();
         newType = newType.toLowerCase().trim();
         if(intType.contains(oldType) && intType.contains(newType)){
-            return null;
+            return "bigint";
         }
         if(intType.contains(oldType) || timeType.contains(oldType)  ){
             if(floatType.contains(newType)){
@@ -360,7 +358,7 @@ public class MysqlToPgDdlUtil {
         if(bigType.contains(newType)){
             return "text";
         }
-        return null;
+        return "varchar(60)";
     }
 
 

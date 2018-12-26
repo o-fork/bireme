@@ -22,6 +22,8 @@ import cn.hashdata.bireme.CommitCallback;
 import cn.hashdata.bireme.Context;
 import cn.hashdata.bireme.Row;
 import cn.hashdata.bireme.RowSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * {@code KafkaPipeLine} is a kind of {@code PipeLine} that polls data from Kafka.
@@ -34,7 +36,6 @@ public abstract class KafkaPipeLine extends PipeLine {
 
   protected KafkaConsumer<String, String> consumer;
   protected LinkedBlockingQueue<KafkaCommitCallback> commitCallbacks;
-
   public KafkaPipeLine(Context cxt, SourceConfig conf, String myName) {
     super(cxt, conf, myName);
     consumer = KafkaPipeLine.createConsumer(conf.server, conf.groupID);
