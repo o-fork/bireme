@@ -94,8 +94,11 @@ public class MaxwellPipeLine extends KafkaPipeLine {
       }
       MaxwellRecord record = new MaxwellRecord(value);
 
+      //新建表时，不校验
       if (filter(record)) {
-        return false;
+        if(row.type != RowType.TABLE_CREATE){
+            return false;
+        }
       }
       Table table = cxt.tablesInfo.get(getMappedTableName(record));
 
