@@ -470,7 +470,8 @@ public class MysqlToPgDdlUtil {
                 if( sqlExpr instanceof SQLIntegerExpr){
                     SQLIntegerExpr colum=(SQLIntegerExpr)sqlExpr;
                     if( colum != null && colum.getNumber()!=null && colum.getNumber().intValue() > 0 ){
-                        length.append( colum.getNumber().intValue()*2);
+                        int number= (colum.getNumber().intValue()*2 );
+                        length.append( number >= 600 ? 600 : number);
                         if(sqlExprList.size() > 1){
                             length.append(",");
                         }
