@@ -311,12 +311,13 @@ public class MysqlToPgDdlUtil {
      *@return
      */
     private static String checkColumnType(JsonObject old,String newType,String columnName){
+        String oldType=null;
         if(old.has("columns") && !old.get("columns").isJsonNull()){
             JsonArray jsonArray= old.getAsJsonArray("columns");
             for(int i=0;i<jsonArray.size();i++){
                 JsonObject curr=jsonArray.get(i).getAsJsonObject();
-                if(curr.has("name") && columnName.equals(curr.get("name"))){
-                    String oldType= curr.get("type").getAsString();
+                if(curr.has("name") && columnName.equals(curr.get("name").getAsString())){
+                    oldType= curr.get("type").getAsString();
                     String newModifyType= checkMysqlTypeToPgType(oldType,newType);
                     if(newModifyType!=null){
                         return newModifyType;
@@ -324,7 +325,7 @@ public class MysqlToPgDdlUtil {
                 }
             }
         }
-        return newType;
+        return oldType;
     }
 
 
