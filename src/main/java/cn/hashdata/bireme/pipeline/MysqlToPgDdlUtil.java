@@ -179,7 +179,7 @@ public class MysqlToPgDdlUtil {
                                 SQLCharExpr charExpr=(SQLCharExpr)columnDefinition.getComment();
                                 StringBuilder commentSQL=new StringBuilder();
                                 commentSQL.append("COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
-                                        .append("\"").append(newTable).append("\"").append(".").append("\"").append(columnName).append("\"")
+                                        .append("\"").append(newTable).append("\"").append(".").append("").append(columnName).append("")
                                         .append(" IS ").append("'").append(charExpr.getText()).append("'").append(";");
                                 addColumnList.add(commentSQL.toString());
                             }
@@ -374,13 +374,6 @@ public class MysqlToPgDdlUtil {
     private static String createTableSql(JsonObject columns,List<SQLStatement> statementList){
         String createSqlStr= null;
         try {
-            if(columns== null || !columns.has("columns") || statementList.isEmpty()){
-                return null;
-            }
-            JsonArray columnsArray= columns.get("columns").getAsJsonArray();
-            if(columnsArray.isJsonNull() || columnsArray.size() <=0 ){
-                return null;
-            }
             String database=columns.get("database").getAsString();
             String table=columns.get("table").getAsString();
             StringBuilder createSql=new StringBuilder("CREATE TABLE ");

@@ -93,10 +93,9 @@ public class MaxwellPipeLine extends KafkaPipeLine {
           return false;
       }
       MaxwellRecord record = new MaxwellRecord(value);
-
       //新建表时，不校验
       if (filter(record)) {
-        if(row.type != RowType.TABLE_CREATE){
+        if(record.type != RowType.TABLE_CREATE){
             return false;
         }
       }
@@ -123,7 +122,6 @@ public class MaxwellPipeLine extends KafkaPipeLine {
       }
 
       // -----------------------------------------------
-
       if (row.type == RowType.TABLE_ALTER){//新增，删除，修改 列
            row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_ALTER,record);
            row.originTable = getOriginTableName(record);
@@ -177,7 +175,6 @@ public class MaxwellPipeLine extends KafkaPipeLine {
         if(value.has("sql")){
             this.sql = value.get("sql").getAsString();
         }
-
         switch (typeDb) {
           case "insert":
               type = RowType.INSERT;
