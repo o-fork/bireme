@@ -210,7 +210,7 @@ public class MysqlToPgDdlUtil {
                             if(StringUtils.isNotBlank(comment.getText())){
                                 StringBuilder modifyColumnComment=new StringBuilder();
                                 modifyColumnComment.append(" COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
-                                        .append("\"").append(newTable).append("\"").append(".").append("\"").append(columnName).append("\"")
+                                        .append("\"").append(newTable).append("\"").append(".").append("").append(columnName).append("")
                                         .append(" IS ").append("'").append(comment.getText()).append("'").append(";");
                                 alterTableColumnComment.add(modifyColumnComment.toString());
                             }
@@ -241,7 +241,7 @@ public class MysqlToPgDdlUtil {
                             if(StringUtils.isNotBlank(commentChange.getText())){
                                 StringBuilder modifyColumnComment=new StringBuilder();
                                 modifyColumnComment.append(" COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
-                                        .append("\"").append(newTable).append("\"").append(".").append("\"").append(newColumnName).append("\"")
+                                        .append("\"").append(newTable).append("\"").append(".").append("").append(newColumnName).append("")
                                         .append(" IS ").append("'").append(commentChange.getText()).append("'").append(";");
                                 alterTableColumnComment.add(modifyColumnComment.toString());
                             }
@@ -405,7 +405,7 @@ public class MysqlToPgDdlUtil {
                                SQLCharExpr sqlCharExpr=(SQLCharExpr)currentItems.getComment();
                                String comment=sqlCharExpr.getText();
                                commentSb.append("COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
-                                       .append("\"").append(table).append("\"").append(".").append("\"").append(columnName).append("\"")
+                                       .append("\"").append(table).append("\"").append(".").append("").append(columnName).append("")
                                        .append(" IS ").append("'").append(comment).append("'").append(";");
                                listComment.add(commentSb.toString());
                            }
