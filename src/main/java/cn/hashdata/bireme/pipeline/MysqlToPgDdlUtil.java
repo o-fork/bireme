@@ -196,8 +196,7 @@ public class MysqlToPgDdlUtil {
                         MySqlAlterTableModifyColumn modifyColumn=(MySqlAlterTableModifyColumn)item;
                         SQLColumnDefinition columnDefinition=  modifyColumn.getNewColumnDefinition();
                         String columnName= columnDefinition.getName().getSimpleName();
-                        List<SQLExpr> sqlExprList=columnDefinition.getDataType().getArguments();
-                        String columnType= mysqlTypeToPgType(columnDefinition.getDataType().getName(),sqlExprList);
+                        String columnType= checkColumnType(old,columnDefinition.getDataType().getName(),columnName);
                         //修改列类型
                         modifyColumnSQL.append(" ALTER COLUMN ").append(columnName).append(" TYPE ").append(columnType).append(",");
                         //修改列注释
@@ -225,9 +224,8 @@ public class MysqlToPgDdlUtil {
                         changeColumnList.add(changeColumnSQL.toString());
                         //修改类型
                         StringBuilder changeColumnTypeSQL=new StringBuilder();
-                        List<SQLExpr> sqlExprList=columnDefinitionChange.getDataType().getArguments();
                         if(columnDefinitionChange.getDataType()!=null && columnDefinitionChange.getDataType().getName()!=null){
-                            String columnType= mysqlTypeToPgType(columnDefinitionChange.getDataType().getName(),sqlExprList);
+                            String columnType= checkColumnType(old,columnDefinitionChange.getDataType().getName(),oldColumnName);
                             changeColumnTypeSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\" ").append("ALTER ")
                                     .append(" COLUMN ").append(newColumnName).append(" TYPE ").append(columnType).append(";");
                             changeColumnList.add(changeColumnTypeSQL.toString());
@@ -301,7 +299,30 @@ public class MysqlToPgDdlUtil {
 
 
 
-
+    /**
+     * 在更新列的类型是判断是否能更改
+     *@author: yangyang.li@ttpai.cn
+     * @param
+     *@return
+     */
+    private static String checkColumnType(JsonObject old,String newType,String columnName){
+        if(old.has("columns") && !old.get("columns").isJsonNull()){
+            JsonArray jsonArray= old.getAsJsonArray("columns");
+            for(int i=0;i<jsonArray.size();i++){
+                JsonObject curr=jsonArray.get(i).getAsJsonObject();
+                if(curr.has("name") && columnName.equals(curr.get("name"))){
+                    String oldType= curr.get("type").getAsString();
+                    String newModifyType= checkMysqlTypeToPgType(oldType,newType);
+                    if(newModifyType!=null){
+                        return newModifyType;
+                    }else{
+                        newType = oldType;
+                    }
+                }
+            }
+        }
+        return newType;
+    }
 
 
 
