@@ -175,8 +175,8 @@ public class MysqlToPgDdlUtil {
                             String columnType=mysqlTypeToPgType(columnDefinition.getDataType().getName(),listExpr);
                             addColumnSQL.append(" ADD COLUMN ").append(columnName).append(" ").append(columnType).append(",");
                             //----------备注-------------------------
-                            if(columnDefinition.getCharsetExpr() instanceof SQLCharExpr){
-                                SQLCharExpr charExpr=(SQLCharExpr)columnDefinition.getCharsetExpr();
+                            if(columnDefinition.getComment() instanceof SQLCharExpr){
+                                SQLCharExpr charExpr=(SQLCharExpr)columnDefinition.getComment();
                                 StringBuilder commentSQL=new StringBuilder();
                                 commentSQL.append("COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
                                         .append("\"").append(newTable).append("\"").append(".").append("\"").append(columnName).append("\"")
@@ -400,9 +400,9 @@ public class MysqlToPgDdlUtil {
                             createSql.append("\"").append(columnName.toLowerCase()).append("\"").append(" ").append(columnType).append(",");
 
                             //----------备注----------------
-                           if(currentItems.getCharsetExpr() instanceof SQLCharExpr){
+                           if(currentItems.getComment() instanceof SQLCharExpr){
                                StringBuilder commentSb=new StringBuilder();
-                               SQLCharExpr sqlCharExpr=(SQLCharExpr)currentItems.getCharsetExpr();
+                               SQLCharExpr sqlCharExpr=(SQLCharExpr)currentItems.getComment();
                                String comment=sqlCharExpr.getText();
                                commentSb.append("COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
                                        .append("\"").append(table).append("\"").append(".").append("\"").append(columnName).append("\"")
