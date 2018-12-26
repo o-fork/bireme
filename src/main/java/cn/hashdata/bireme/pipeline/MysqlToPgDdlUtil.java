@@ -160,10 +160,13 @@ public class MysqlToPgDdlUtil {
                 dropColumnSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\" ");
                 StringBuilder modifyColumnSQL=new StringBuilder();
                 modifyColumnSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\"").append(" ");
-
+                boolean hasAddColumn=false;
+                boolean hasDropColumn=false;
+                boolean hasModifyColumn=false;
                 for(SQLAlterTableItem item:listAlter){
                     //保存column
                     if(item instanceof SQLAlterTableAddColumn){
+                        hasAddColumn = true;
                         SQLAlterTableAddColumn addColumn=(SQLAlterTableAddColumn)item;
                         List<SQLColumnDefinition> listColumns= addColumn.getColumns();
                         for(SQLColumnDefinition columnDefinition:listColumns){
@@ -184,6 +187,7 @@ public class MysqlToPgDdlUtil {
                     }
                     //删除 column
                     if(item instanceof SQLAlterTableDropColumnItem){
+                        hasDropColumn = true;
                         SQLAlterTableDropColumnItem dropColumnItem=(SQLAlterTableDropColumnItem)item;
                         List<SQLName> listSQLName= dropColumnItem.getColumns();
                         for(SQLName sqlName:listSQLName){
@@ -193,6 +197,7 @@ public class MysqlToPgDdlUtil {
                     }
                     //modify column
                     if(item instanceof MySqlAlterTableModifyColumn){
+                        hasModifyColumn = true;
                         MySqlAlterTableModifyColumn modifyColumn=(MySqlAlterTableModifyColumn)item;
                         SQLColumnDefinition columnDefinition=  modifyColumn.getNewColumnDefinition();
                         String columnName= columnDefinition.getName().getSimpleName();
@@ -256,28 +261,28 @@ public class MysqlToPgDdlUtil {
                 }
                 addColumnSQLStr=addColumnSQL.toString();
                 if(StringUtils.isNotBlank(addColumnSQLStr) && addColumnSQLStr.endsWith(",")){
-                    addColumnSQLStr = addColumnSQLStr.substring(0,addColumnSQLStr.length());
+                    addColumnSQLStr = addColumnSQLStr.substring(0,addColumnSQLStr.length()-1);
                 }
                 dropColumnSQLStr=dropColumnSQL.toString();
                 if(StringUtils.isNotBlank(dropColumnSQLStr) && dropColumnSQLStr.endsWith(",")){
-                    dropColumnSQLStr = dropColumnSQLStr.substring(0,dropColumnSQLStr.length());
+                    dropColumnSQLStr = dropColumnSQLStr.substring(0,dropColumnSQLStr.length()-1);
                 }
-                if(StringUtils.isNotBlank(addColumnSQLStr)){
+                if(StringUtils.isNotBlank(addColumnSQLStr) && hasAddColumn){
                     alterSQL.append(addColumnSQLStr).append(";");
                 }
                 modifyColumnSQLStr = modifyColumnSQL.toString();
                 if(StringUtils.isNotBlank(modifyColumnSQLStr) && modifyColumnSQLStr.endsWith(",")){
-                    modifyColumnSQLStr = modifyColumnSQLStr.substring(0,modifyColumnSQLStr.length());
+                    modifyColumnSQLStr = modifyColumnSQLStr.substring(0,modifyColumnSQLStr.length()-1);
                 }
                 if(CollectionUtils.isNotEmpty(addColumnList)){
                     for(String comment:addColumnList){
                         alterSQL.append(comment);
                     }
                 }
-                if(StringUtils.isNotBlank(dropColumnSQLStr)){
+                if(StringUtils.isNotBlank(dropColumnSQLStr) && hasDropColumn){
                     alterSQL.append(dropColumnSQLStr).append(";");
                 }
-                if(StringUtils.isNotBlank(modifyColumnSQLStr)){
+                if(StringUtils.isNotBlank(modifyColumnSQLStr) && hasModifyColumn){
                     alterSQL.append(modifyColumnSQLStr).append(";");
                 }
                 if(CollectionUtils.isNotEmpty(changeColumnList)){
