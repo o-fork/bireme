@@ -140,7 +140,6 @@ public class RowCache {
    */
   public void startLoad() throws BiremeException, InterruptedException {
     Future<LoadTask> head = mergeResult.peek();
-
     if (head != null && head.isDone()) {
       // get result of last load
       if (loadResult != null && loadResult.isDone()) {

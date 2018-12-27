@@ -131,7 +131,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
           row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_CREATE,record);
           row.originTable = getOriginTableName(record);
 //          row.mappedTable = getMappedTableName(record);
-          row.mappedTable = "create_table";
+          row.mappedTable = getOriginTableName(record);
       }
       if (row.type == RowType.TABLE_DROP){//仅删除表
           row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_DROP,record);
