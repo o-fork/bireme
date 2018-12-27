@@ -92,13 +92,14 @@ public class Dispatcher {
       if(StringUtils.isBlank(fullTableName)){
           continue;
       }
-      RowCache rowCache = cache.get(fullTableName);
-      if (rowCache == null) {
-        rowCache = new RowCache(cxt, fullTableName, pipeLine);
-        cache.put(fullTableName, rowCache);
+      if(!"create_table".equals(fullTableName)){
+          RowCache rowCache = cache.get(fullTableName);
+          if (rowCache == null) {
+              rowCache = new RowCache(cxt, fullTableName, pipeLine);
+              cache.put(fullTableName, rowCache);
+          }
+          complete = rowCache.addRows(rows, rowSet.callback);
       }
-
-      complete = rowCache.addRows(rows, rowSet.callback);
       if (!complete) {
         break;
       }
