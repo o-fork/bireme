@@ -252,8 +252,10 @@ public class MysqlToPgDdlUtil {
                         if(alterTableOption.getValue()!=null && alterTableOption.getValue() instanceof SQLIdentifierExpr){
                             SQLIdentifierExpr  sqlIdentifierExpr=(SQLIdentifierExpr)alterTableOption.getValue();
                             StringBuilder alterTableComment=new StringBuilder();
+                            String comment= sqlIdentifierExpr.getName();
+                            comment = comment.replaceAll("\"","").replaceAll("'","");
                             alterTableComment.append("COMMENT ON TABLE \"").append(database).append("\".").append("\"").append(newTable).append("\"")
-                                    .append(" IS '").append(sqlIdentifierExpr.getName()).append("';");
+                                    .append(" IS '").append(comment).append("';");
                             alterTableColumnComment.add(alterTableComment.toString());
                         }
                     }

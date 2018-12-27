@@ -5,7 +5,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Map.Entry;
 
-import cn.hashdata.bireme.pipeline.MysqlToPgDdlUtil;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
