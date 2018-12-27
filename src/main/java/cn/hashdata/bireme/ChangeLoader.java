@@ -244,7 +244,7 @@ public class ChangeLoader implements Callable<Long> {
     boolean success= false;
     if(StringUtils.isNotBlank(currentTask.pgSql)){
         logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
-        success= executeDdlSql(currentTask.pgSql);
+        success= MysqlToPgDdlUtil.executeDdlSql(conn,currentTask.pgSql);
         //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
         if(success && (currentTask.type == Row.RowType.TABLE_ALTER || currentTask.type == Row.RowType.TABLE_CREATE)){
             String fullTableName=this.table.tableFullName;
@@ -269,45 +269,8 @@ public class ChangeLoader implements Callable<Long> {
     for (CommitCallback callback : currentTask.callbacks) {
       callback.done();
     }
-
-
-
   }
-  
-  /**
-   *  处理ddl语句
-   *@author: yangyang.li@ttpai.cn
-   * @param ddlSql
-   *@return
-   */
-  private Boolean executeDdlSql(String ddlSql) {
-      List<String> listDdl=  Arrays.asList(ddlSql.split(";"));
-      if(CollectionUtils.isNotEmpty(listDdl)){
-          Statement statement=null;
-          try {
-              statement= conn.createStatement();
-              for(String ddl:listDdl){
-                  if(StringUtils.isNotBlank(ddl)){
-                      statement.execute(ddl);
-                  }
-              }
-          } catch (Exception e) {
-                logger.error("-----------execute--ddl---error---ddlSQL:{}",ddlSql,e);
-                return false;
-          }finally {
-              if(statement != null){
-                  try {
-                      statement.close();
-                  } catch (SQLException e) {
-                      logger.error("close -----statement-------error",e);
-                      return false;
-                  }
-              }
-          }
-          return true;
-      }
-      return false;
-  }
+
 
   private Long executeDelete(Set<String> delete) throws BiremeException, InterruptedException {
     long deleteCounts;

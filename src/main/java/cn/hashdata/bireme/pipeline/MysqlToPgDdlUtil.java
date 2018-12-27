@@ -1,5 +1,8 @@
 package cn.hashdata.bireme.pipeline;
 
+import cn.hashdata.bireme.BiremeException;
+import cn.hashdata.bireme.BiremeUtility;
+import cn.hashdata.bireme.Context;
 import cn.hashdata.bireme.GetPrimaryKeys;
 import cn.hashdata.bireme.Row;
 import cn.hashdata.bireme.Table;
@@ -32,7 +35,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -529,6 +535,54 @@ public class MysqlToPgDdlUtil {
         return pgColumn;
     }
 
+    /**
+     * 创建新表
+     *@author: yangyang.li@ttpai.cn
+     * @param
+     *@return
+     */
+    public static void createNewTable(String pgSql, Context cxt) throws BiremeException{
+        Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
+        if(conn == null || StringUtils.isBlank(pgSql)){
+            executeDdlSql(conn,pgSql);
+        }
+        try {
+            conn.commit();
+            conn.close();
+        } catch (SQLException e) {
+           throw new BiremeException("----------createNewTableException-----------------",e);
+        }
+    }
+
+
+    public static Boolean executeDdlSql(Connection conn,String ddlSql) {
+        List<String> listDdl=  Arrays.asList(ddlSql.split(";"));
+        if(CollectionUtils.isNotEmpty(listDdl)){
+            Statement statement=null;
+            try {
+                statement= conn.createStatement();
+                for(String ddl:listDdl){
+                    if(StringUtils.isNotBlank(ddl)){
+                        statement.execute(ddl);
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("-----------execute--ddl---error---ddlSQL:{}",ddlSql,e);
+                return false;
+            }finally {
+                if(statement != null){
+                    try {
+                        statement.close();
+                    } catch (SQLException e) {
+                        logger.error("close -----statement-------error",e);
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
 
 
     /*public static void main(String[] args) throws Exception{
