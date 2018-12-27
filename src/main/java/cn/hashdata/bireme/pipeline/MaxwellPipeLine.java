@@ -61,6 +61,11 @@ public class MaxwellPipeLine extends KafkaPipeLine {
       return record.dataSource + "." + record.database + "." + record.table;
     }
 
+    private String getFullTableName(MaxwellRecord record){
+        String newTable = record.newTable == null ? record.table : record.newTable;
+        return record.database + ".\"" + newTable+"\"";
+    }
+
     private boolean filter(MaxwellRecord record) {
       String fullTableName = record.dataSource + "." + record.database + "." + record.table;
 
@@ -128,6 +133,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
            row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_ALTER,record);
            row.originTable = getOriginTableName(record);
            row.mappedTable = getMappedTableName(record);
+           row.tableFullName = getFullTableName(record);
       }
       if (row.type == RowType.TABLE_CREATE){//仅创建表
           row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_CREATE,record);
@@ -159,6 +165,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
       public JsonObject old;
       public JsonObject def;//alter-table 时
       public String sql;//alter-table 时
+      public String newTable;//修改表名是使用
 
       public MaxwellRecord(String changeValue) {
         JsonParser jsonParser = new JsonParser();
@@ -176,6 +183,9 @@ public class MaxwellPipeLine extends KafkaPipeLine {
         }
         if(value.has("def") && !value.get("def").isJsonNull()){
             this.def = value.get("def").getAsJsonObject();
+            if(this.def.has("table") && !this.def.get("table").isJsonNull()){
+                this.newTable = this.def.get("table").getAsString();
+            }
         }
         if(value.has("sql")){
             this.sql = value.get("sql").getAsString();

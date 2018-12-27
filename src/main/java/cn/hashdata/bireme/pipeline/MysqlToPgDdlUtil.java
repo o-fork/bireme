@@ -111,7 +111,7 @@ public class MysqlToPgDdlUtil {
             resultSQL= createBd + record.database;
         }
         if(Row.RowType.TABLE_DROP == rowType){
-            resultSQL="DROP TABLE "+record.database+".\""+record.table+"\"";
+            resultSQL="DROP TABLE "+record.database+".\""+record.table.toUpperCase()+"\"";
         }
         if(Row.RowType.TABLE_ALTER == rowType){
             try {
@@ -423,11 +423,12 @@ public class MysqlToPgDdlUtil {
 
 
   
-    public static Table reflushTableAfterDDl(String fullTableName, Connection conn,String dbName,String tableName) throws Exception{
+    public static Table reflushTableAfterDDl(String fullTableName, Connection conn) throws Exception{
         HashMap<String,String> paramMap=new HashMap<>();
         paramMap.put(fullTableName,fullTableName);
+        String[] tableName = fullTableName.split(".");
         Map<String, List<String>> listKeyMap= GetPrimaryKeys.getRefulshPrimaryKeys(paramMap,conn);
-        Table table=new Table(dbName,tableName,listKeyMap,conn,null);
+        Table table=new Table(tableName[0],tableName[1],listKeyMap,conn,null);
         return table;
     }
 

@@ -22,6 +22,7 @@ public class LoadTask {
   public HashMap<String, String> insert;
   public String pgSql;//ddl语句
   public Row.RowType type;//操作类型
+  public String fullTableName;
 
   /**
    * Create a new {@code LoadTask}.
@@ -41,5 +42,6 @@ public class LoadTask {
     insert.clear();
     pgSql=null;
     type = null;
+    fullTableName = null;
   }
 }

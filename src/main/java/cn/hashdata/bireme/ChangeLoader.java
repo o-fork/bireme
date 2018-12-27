@@ -243,9 +243,9 @@ public class ChangeLoader implements Callable<Long> {
         success= MysqlToPgDdlUtil.executeDdlSql(conn,currentTask.pgSql);
         //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
         if(success && (currentTask.type == Row.RowType.TABLE_ALTER || currentTask.type == Row.RowType.TABLE_CREATE)){
-            String fullTableName=this.table.tableFullName;
+            String fullTableName=currentTask.fullTableName;
             try {
-                Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,this.table.dbName,this.table.tableName);
+                Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn);
                 this.table = tableNew;
                 cxt.tablesInfo.put(fullTableName,tableNew);
                 logger.info("------------------更新表结构结束-------------fullTableName："+fullTableName);

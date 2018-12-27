@@ -219,6 +219,7 @@ public class RowCache {
              if(StringUtils.isNotBlank(row.pgSql)){
                 task.pgSql = row.pgSql;
                 task.type = Row.RowType.TABLE_ALTER;
+                task.fullTableName = row.tableFullName;
              }
                break;
         }
