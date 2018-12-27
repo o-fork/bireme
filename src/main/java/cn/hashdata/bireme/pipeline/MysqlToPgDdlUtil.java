@@ -543,14 +543,14 @@ public class MysqlToPgDdlUtil {
      */
     public static void createNewTable(String pgSql, Context cxt) throws BiremeException{
         Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
-        if(conn == null || StringUtils.isBlank(pgSql)){
+        if(conn != null && StringUtils.isNotBlank(pgSql)){
             executeDdlSql(conn,pgSql);
-        }
-        try {
-            conn.commit();
-            conn.close();
-        } catch (SQLException e) {
-           throw new BiremeException("----------createNewTableException-----------------",e);
+            try {
+                conn.commit();
+                conn.close();
+            } catch (SQLException e) {
+                throw new BiremeException("----------createNewTableException-----------------",e);
+            }
         }
     }
 
