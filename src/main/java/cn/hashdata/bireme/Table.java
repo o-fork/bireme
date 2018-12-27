@@ -49,6 +49,7 @@ public class Table {
    * @param tableMap  The schema including table
    * @param tableName Table name
    * @param conn      Connection to the database
+   * @param dbName    database name
    * @throws BiremeException - Wrap and throw Exception which cannot be handled.
    */
   public Table(String dbName,String tableName, Map<String, List<String>> tableMap, Connection conn)
@@ -99,14 +100,7 @@ public class Table {
     }
   }
 
-    /**
-     * Get metadata of a specific table using a given connection and construct a new {@code Table}.
-     *
-     * @param tableMap  The schema including table
-     * @param tableName Table name
-     * @param conn      Connection to the database
-     * @throws BiremeException - Wrap and throw Exception which cannot be handled.
-     */
+
     public Table(String dbName,String tableName, Map<String, List<String>> tableMap, Connection conn,String none)
             throws BiremeException {
         this.ncolumns = 0;

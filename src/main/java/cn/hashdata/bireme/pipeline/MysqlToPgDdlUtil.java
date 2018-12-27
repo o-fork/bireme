@@ -88,13 +88,6 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    /**
-     * mysql ddl语句转 greenplum ddl语句
-     *@author: yangyang.li@ttpai.cn
-     * @param rowType
-     * @param record
-     *@return
-     */
     public static String tableAlter(Row.RowType rowType,MaxwellPipeLine.MaxwellTransformer.MaxwellRecord record){
         String sqlMysql=record.sql;
         if(StringUtils.isBlank(sqlMysql)){
@@ -310,12 +303,6 @@ public class MysqlToPgDdlUtil {
 
 
 
-    /**
-     * 在更新列的类型是判断是否能更改
-     *@author: yangyang.li@ttpai.cn
-     * @param
-     *@return
-     */
     private static String checkColumnType(JsonObject old,String newType,String columnName){
         String oldType=null;
         if(old.has("columns") && !old.get("columns").isJsonNull()){
@@ -336,14 +323,6 @@ public class MysqlToPgDdlUtil {
 
 
 
-    /**
-     * 校验 列 类型是否能修改。
-     * 针对 pgDb
-     *@author: yangyang.li@ttpai.cn
-     * @param oldType
-     * @param newType
-     *@return
-     */
     private static String checkMysqlTypeToPgType(String oldType,String newType){
         oldType = oldType.toLowerCase().trim();
         newType = newType.toLowerCase().trim();
@@ -369,13 +348,6 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    /**
-     *  创建表。转换
-     *@author: yangyang.li@ttpai.cn
-     * @param columns
-     * @param sql
-     *@return
-     */
     private static String createTableSql(JsonObject columns,List<SQLStatement> statementList){
         String createSqlStr= null;
         try {
@@ -441,15 +413,7 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    /**
-     * ddl 执行完更新 内存中的table
-     *@author: yangyang.li@ttpai.cn
-     * @param fullTableName
-     * @param cxt
-     * @param dbName
-     * @param tableName
-     *@return
-     */
+  
     public static Table reflushTableAfterDDl(String fullTableName, Connection conn,String dbName,String tableName) throws Exception{
         HashMap<String,String> paramMap=new HashMap<>();
         paramMap.put(fullTableName,fullTableName);
@@ -460,12 +424,6 @@ public class MysqlToPgDdlUtil {
 
 
 
-    /**
-     *
-     *@author: yangyang.li@ttpai.cn
-     * @param
-     *@return
-     */
     private static String mysqlTypeToPgType(String dataType,List<SQLExpr> sqlExprList) throws Exception{
         String pgColumn="";
         String lengthStr=null;
@@ -535,21 +493,16 @@ public class MysqlToPgDdlUtil {
         return pgColumn;
     }
 
-    /**
-     * 创建新表
-     *@author: yangyang.li@ttpai.cn
-     * @param
-     *@return
-     */
-    public static void createNewTable(String pgSql, Context cxt) throws BiremeException{
+
+    public static void handleDDlTableSql(String pgSql, Context cxt) throws BiremeException{
         Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
         if(conn != null && StringUtils.isNotBlank(pgSql)){
+            logger.error("--------createTableStart---------pgSQL--------{}",pgSql);
             executeDdlSql(conn,pgSql);
             try {
-                conn.commit();
                 conn.close();
             } catch (SQLException e) {
-                throw new BiremeException("----------createNewTableException-----------------",e);
+                logger.error("--------createTableStart---------SQLException--------{}",pgSql,e);
             }
         }
     }
