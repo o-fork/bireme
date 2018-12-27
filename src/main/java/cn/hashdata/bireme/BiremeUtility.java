@@ -56,7 +56,6 @@ public class BiremeUtility {
     }
 
     if (element == null) {
-      logger.error("Not found. Record does not have a field named '"+fieldName+" '");
       return null;
     }
 
