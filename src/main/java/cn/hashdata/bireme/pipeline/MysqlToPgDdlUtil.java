@@ -177,9 +177,11 @@ public class MysqlToPgDdlUtil {
                             if(columnDefinition.getComment() instanceof SQLCharExpr){
                                 SQLCharExpr charExpr=(SQLCharExpr)columnDefinition.getComment();
                                 StringBuilder commentSQL=new StringBuilder();
+                                String comment=charExpr.getText()==null ? "" :charExpr.getText() ;
+                                comment=comment.replaceAll("\"","").replaceAll("'","");
                                 commentSQL.append("COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
                                         .append("\"").append(newTable).append("\"").append(".").append("").append(columnName).append("")
-                                        .append(" IS ").append("'").append(charExpr.getText()).append("'").append(";");
+                                        .append(" IS ").append("'").append(comment).append("'").append(";");
                                 addColumnList.add(commentSQL.toString());
                             }
                         }
@@ -205,12 +207,14 @@ public class MysqlToPgDdlUtil {
                         modifyColumnSQL.append(" ALTER COLUMN ").append(columnName).append(" TYPE ").append(columnType).append(",");
                         //修改列注释
                         if(columnDefinition.getComment()!=null && columnDefinition.getComment() instanceof SQLCharExpr) {
-                            SQLCharExpr comment=(SQLCharExpr)columnDefinition.getComment();
-                            if(StringUtils.isNotBlank(comment.getText())){
+                            SQLCharExpr commentExpr=(SQLCharExpr)columnDefinition.getComment();
+                            String comment=commentExpr.getText();
+                            if(StringUtils.isNotBlank(comment)){
                                 StringBuilder modifyColumnComment=new StringBuilder();
+                                comment = comment.replaceAll("\"","").replaceAll("'","");
                                 modifyColumnComment.append(" COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
                                         .append("\"").append(newTable).append("\"").append(".").append("").append(columnName).append("")
-                                        .append(" IS ").append("'").append(comment.getText()).append("'").append(";");
+                                        .append(" IS ").append("'").append(comment).append("'").append(";");
                                 alterTableColumnComment.add(modifyColumnComment.toString());
                             }
                         }
@@ -239,9 +243,11 @@ public class MysqlToPgDdlUtil {
                             SQLCharExpr commentChange=(SQLCharExpr)columnDefinitionChange.getComment();
                             if(StringUtils.isNotBlank(commentChange.getText())){
                                 StringBuilder modifyColumnComment=new StringBuilder();
+                                String comment= commentChange.getText();
+                                comment = comment.replaceAll("\"","").replaceAll("'","");
                                 modifyColumnComment.append(" COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
                                         .append("\"").append(newTable).append("\"").append(".").append("").append(newColumnName).append("")
-                                        .append(" IS ").append("'").append(commentChange.getText()).append("'").append(";");
+                                        .append(" IS ").append("'").append(comment).append("'").append(";");
                                 alterTableColumnComment.add(modifyColumnComment.toString());
                             }
                         }
@@ -375,7 +381,8 @@ public class MysqlToPgDdlUtil {
                            if(currentItems.getComment() instanceof SQLCharExpr){
                                StringBuilder commentSb=new StringBuilder();
                                SQLCharExpr sqlCharExpr=(SQLCharExpr)currentItems.getComment();
-                               String comment=sqlCharExpr.getText();
+                               String comment=sqlCharExpr.getText()==null ? "" : sqlCharExpr.getText();
+                               comment = comment.replaceAll("\"","").replaceAll("'","");
                                commentSb.append("COMMENT ON COLUMN ").append("\"").append(database).append("\"").append(".")
                                        .append("\"").append(table).append("\"").append(".").append("").append(columnName).append("")
                                        .append(" IS ").append("'").append(comment).append("'").append(";");
