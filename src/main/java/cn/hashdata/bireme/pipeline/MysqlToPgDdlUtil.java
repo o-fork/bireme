@@ -529,15 +529,24 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    public static void handleDDlTableSql(String pgSql, Context cxt) throws BiremeException{
+    public static void handleDDlTableSql( Row row, Context cxt) throws BiremeException{
         Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
-        if(conn != null && StringUtils.isNotBlank(pgSql)){
-            logger.error("--------createTableStart---------pgSQL--------{}",pgSql);
-            executeDdlSql(conn,pgSql);
+        if(conn != null && StringUtils.isNotBlank(row.pgSql)){
+            logger.error("--------createTableStart---------pgSQL--------{}",row.pgSql);
+            executeDdlSql(conn,row.pgSql);
+            try {
+                //加入内存中
+                if(row.type == Row.RowType.TABLE_CREATE){
+                    logger.info("---------createTable-fullName---------:{}",row.tableFullName);
+                    reflushTableAfterDDl(row.tableFullName,conn,cxt);
+                }
+            } catch (Exception e) {
+               logger.info("------新建表-----加入内存中异常--------fullName:{}","",e);
+            }
             try {
                 conn.close();
             } catch (SQLException e) {
-                logger.error("--------createTableStart---------SQLException--------{}",pgSql,e);
+                logger.error("--------createTableStart---------SQLException--------{}",row.pgSql,e);
             }
         }
     }
