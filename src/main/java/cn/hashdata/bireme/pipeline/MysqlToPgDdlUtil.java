@@ -628,7 +628,7 @@ public class MysqlToPgDdlUtil {
             fileWriter.flush();
             fileWriter.close();
         } catch (Exception e) {
-            e.printStackTrace();
+           logger.error("---更新磁盘配置文件失败-------oldTable:{}----newTable:{}-",oldTable,newTable,e);
         }
     }
 }
