@@ -430,6 +430,11 @@ public class MysqlToPgDdlUtil {
         Map<String, List<String>> listKeyMap= GetPrimaryKeys.getRefulshPrimaryKeys(paramMap,conn);
         Table table=new Table(tableName[0],tableName[1],listKeyMap,conn,null);
         cxt.tablesInfo.put(fullTableName,table);
+        //更新 内存配置文件。此处写死，使用maxwell
+        String datasource="maxwell";
+        String fullName=fullTableName;
+        fullName = fullName.replaceAll("\"","");
+        cxt.tableMap.put(datasource+"."+fullName,fullTableName);
         return table;
     }
 
