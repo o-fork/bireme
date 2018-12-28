@@ -69,7 +69,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
     private boolean filter(MaxwellRecord record) {
       String fullTableName = record.dataSource + "." + record.database + "." + record.table;
 
-      if (!tableMap.containsKey(fullTableName)) {
+      if (!cxt.tableMap.containsKey(fullTableName)) {
         return true;
       }
 
