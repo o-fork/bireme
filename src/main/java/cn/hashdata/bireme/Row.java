@@ -25,4 +25,5 @@ public class Row {
 
   public String pgSql;//表结构修改sql
   public String tableFullName;//表结构修改时，获取当前表的表名。
+  public Boolean renameTable=false;//存在表名修改的sql
 }

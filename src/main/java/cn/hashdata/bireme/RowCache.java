@@ -220,6 +220,7 @@ public class RowCache {
                 task.pgSql = row.pgSql;
                 task.type = Row.RowType.TABLE_ALTER;
                 task.fullTableName = row.tableFullName;
+                task.renameTable = row.renameTable;
              }
                break;
         }

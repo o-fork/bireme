@@ -244,10 +244,14 @@ public class ChangeLoader implements Callable<Long> {
         //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
         if(success && (currentTask.type == Row.RowType.TABLE_ALTER || currentTask.type == Row.RowType.TABLE_CREATE)){
             String fullTableName=currentTask.fullTableName;
+            String oldTableName=this.table.tableFullName;
             try {
-                logger.info("------------------更新表结构开始------beforeTable:{}-----afterTable:{}",this.table.tableFullName,fullTableName);
+                logger.info("------------------更新表结构开始------beforeTable:{}-----afterTable:{}",oldTableName,fullTableName);
                 Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,cxt);
                 this.table = tableNew;
+                if(currentTask.renameTable){//存在修改表名字的sql
+                    MysqlToPgDdlUtil.reflushConfigProperties(oldTableName,fullTableName,"maxwell1");
+                }
             } catch (Exception e) {
                 logger.error("---ddl语句执行后，获取更新后的表结构异常：table:{}",fullTableName,e);
             }

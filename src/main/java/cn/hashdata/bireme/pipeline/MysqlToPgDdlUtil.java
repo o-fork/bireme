@@ -96,7 +96,7 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    public static String tableAlter(Row.RowType rowType,MaxwellPipeLine.MaxwellTransformer.MaxwellRecord record){
+    public static String tableAlter(Row.RowType rowType,MaxwellPipeLine.MaxwellTransformer.MaxwellRecord record,Row row){
         String sqlMysql=record.sql;
         if(StringUtils.isBlank(sqlMysql)){
             return "";
@@ -123,7 +123,7 @@ public class MysqlToPgDdlUtil {
         }
         if(Row.RowType.TABLE_ALTER == rowType){
             try {
-                resultSQL=tableAlterHandle(record.old,record.def,statementList);
+                resultSQL=tableAlterHandle(record.old,record.def,statementList,row);
             } catch (Exception e) {
                 logger.error("Row.RowType.TABLE_ALTER 类型失败:sql-{}",sqlMysql,e);
             }
@@ -132,7 +132,7 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    private static String tableAlterHandle(JsonObject old,JsonObject def,List<SQLStatement> statementList) throws Exception{
+    private static String tableAlterHandle(JsonObject old,JsonObject def,List<SQLStatement> statementList,Row row) throws Exception{
         StringBuilder alterSQL=new StringBuilder();
         String database=def.get("database").getAsString();
         String oldTable=old.get("table").getAsString();
@@ -150,6 +150,7 @@ public class MysqlToPgDdlUtil {
                             .append(" rename to ").append("\"").append(afterName).append("\"").append(";");
                     alterSQL.append(renameSQL.toString());
                 }
+                row.renameTable = true;
                 return alterSQL.toString();
             }
             if(statement instanceof SQLAlterTableStatement){
@@ -596,7 +597,7 @@ public class MysqlToPgDdlUtil {
     /*
    *  需改表名，新增表名 更新磁盘中配置文件
    */
-    private static synchronized void reflushConfigProperties(String oldTable,String newTable,String dataSource){
+    public static synchronized void reflushConfigProperties(String oldTable,String newTable,String dataSource){
         try {
             Configurations configs = new Configurations();
             Configuration tableConfig = null;
