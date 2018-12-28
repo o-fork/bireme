@@ -247,8 +247,7 @@ public class ChangeLoader implements Callable<Long> {
             try {
                 Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,cxt);
                 this.table = tableNew;
-                logger.info("------------------更新表结构结束-------------fullTableName："+fullTableName);
-                logger.info("------------tableMap-------------{}",cxt.tableMap);
+                logger.info("------------------更新表结构结束------beforeTable:{}-----afterTable--fullTableName{}",this.table.tableFullName,fullTableName);
             } catch (Exception e) {
                 logger.error("---ddl语句执行后，获取更新后的表结构异常：table:{}",fullTableName,e);
             }
