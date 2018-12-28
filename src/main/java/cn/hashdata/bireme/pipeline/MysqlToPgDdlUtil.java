@@ -30,10 +30,15 @@ import com.alibaba.druid.util.JdbcConstants;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.builder.fluent.Configurations;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -41,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -539,6 +545,11 @@ public class MysqlToPgDdlUtil {
                 if(row.type == Row.RowType.TABLE_CREATE){
                     logger.info("---------createTable-fullName---------:{}",row.tableFullName);
                     reflushTableAfterDDl(row.tableFullName,conn,cxt);
+                    //更新配置文件 新增
+                    reflushConfigProperties("",row.tableFullName,"maxwell1");
+                }else if(row.type == Row.RowType.TABLE_DROP){
+                    //更新配置文件 删除
+                    reflushConfigProperties(row.tableFullName,"","maxwell1");
                 }
             } catch (Exception e) {
                logger.info("------新建表-----加入内存中异常--------fullName:{}","",e);
@@ -582,10 +593,42 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    /*public static void main(String[] args) throws Exception{
-        String sql="ALTER TABLE `BOSS_ACCOUNT` MODIFY COLUMN LYY_NAME_DD VARCHAR (50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '这是测试列' AFTER `PASSWORD`";
-        System.out.println(replaceColumnType("LYY_NAME_DD","VARCHAR",sql,true)) ;
-
-    }*/
-
+    /*
+   *  需改表名，新增表名 更新磁盘中配置文件
+   */
+    private static synchronized void reflushConfigProperties(String oldTable,String newTable,String dataSource){
+        try {
+            Configurations configs = new Configurations();
+            Configuration tableConfig = null;
+            tableConfig = configs.properties(new File("etc"+ File.separator + dataSource + ".properties"));
+            Map<String,String> newHashMap=new HashMap<String, String>();
+            if(StringUtils.isNotBlank(newTable)){
+                newHashMap.put(newTable.replaceAll("\"",""),newTable);
+            }
+            if(tableConfig!=null){
+                Iterator<String> tables = tableConfig.getKeys();
+                while (tables.hasNext()) {
+                    String mysqlTable = tables.next();
+                    String pgTable = tableConfig.getString(mysqlTable);
+                    System.out.println(mysqlTable);
+                    System.out.println(oldTable.replaceAll("\"",""));
+                    if(StringUtils.isBlank(oldTable) || !mysqlTable.equals(oldTable.replaceAll("\"",""))){
+                        newHashMap.put(mysqlTable,pgTable);
+                    }
+                }
+            }
+            StringBuilder stringBuilder=new StringBuilder();
+            for(Map.Entry<String,String> currentMap:newHashMap.entrySet()){
+                String key=currentMap.getKey();
+                String value=currentMap.getValue();
+                stringBuilder.append(key).append("=").append(value).append("\r\n");
+            }
+            FileWriter fileWriter=new FileWriter(new File("etc"+File.separator + dataSource + ".properties"));
+            fileWriter.write(stringBuilder.toString());
+            fileWriter.flush();
+            fileWriter.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
