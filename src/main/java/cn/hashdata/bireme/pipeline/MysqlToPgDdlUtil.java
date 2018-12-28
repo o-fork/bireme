@@ -423,12 +423,13 @@ public class MysqlToPgDdlUtil {
 
 
   
-    public static Table reflushTableAfterDDl(String fullTableName, Connection conn) throws Exception{
+    public static Table reflushTableAfterDDl(String fullTableName, Connection conn,Context cxt) throws Exception{
         HashMap<String,String> paramMap=new HashMap<>();
         paramMap.put(fullTableName,fullTableName);
         String[] tableName = fullTableName.split("\\.");
         Map<String, List<String>> listKeyMap= GetPrimaryKeys.getRefulshPrimaryKeys(paramMap,conn);
         Table table=new Table(tableName[0],tableName[1],listKeyMap,conn,null);
+        cxt.tablesInfo.put(fullTableName,table);
         return table;
     }
 
