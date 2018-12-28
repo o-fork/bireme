@@ -40,8 +40,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author: : yangyang.li
@@ -431,13 +433,30 @@ public class MysqlToPgDdlUtil {
         Table table=new Table(tableName[0],tableName[1],listKeyMap,conn,null);
         cxt.tablesInfo.put(fullTableName,table);
         //更新 内存配置文件。此处写死，使用maxwell
-        String datasource="maxwell";
         String fullName=fullTableName;
         fullName = fullName.replaceAll("\"","");
-        cxt.tableMap.put(datasource+"."+fullName,fullTableName);
+        cxt.tableMap.put(findConfigName(cxt)+"."+fullName,fullTableName);
         return table;
     }
 
+
+    private static String findConfigName(Context cxt){
+        String datasource="maxwell1";
+        HashMap<String,String> tabMap= cxt.tableMap;
+        Set<String> keySet= tabMap.keySet();
+        String keyValue=null;
+        for(String key:keySet){
+           if(StringUtils.isNotBlank(key)){
+               keyValue = key;
+               break;
+           }
+        }
+        if(StringUtils.isNotBlank(keyValue)){
+           String[] keyArray= keyValue.split("\\.");
+           datasource = keyArray[0];
+        }
+        return datasource;
+    }
 
 
     private static String mysqlTypeToPgType(String dataType,List<SQLExpr> sqlExprList) throws Exception{
