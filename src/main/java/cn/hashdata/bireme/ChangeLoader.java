@@ -254,6 +254,7 @@ public class ChangeLoader implements Callable<Long> {
                 }
             } catch (Exception e) {
                 logger.error("---ddl语句执行后，获取更新后的表结构异常：table:{}",fullTableName,e);
+                throw new BiremeException("---ddl语句执行后，获取更新后的表结构异常",e);
             }
         }
     }

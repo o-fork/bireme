@@ -102,7 +102,7 @@ public class GetPrimaryKeys {
 
 
     public static Map<String, List<String>> getRefulshPrimaryKeys(
-            HashMap<String, String> tableMap, Connection conn) throws Exception {
+            HashMap<String, String> tableMap, Connection conn) throws BiremeException {
         Statement statement = null;
         ResultSet resultSet = null;
         Map<String, List<String>> table_map = new HashMap<>();
@@ -166,7 +166,11 @@ public class GetPrimaryKeys {
             throw new BiremeException(message, e);
         }finally {
             if(statement!=null){
-                statement.close();
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                    throw new BiremeException("---------更新表结构异常----------------",e);
+                }
             }
         }
         return table_map;

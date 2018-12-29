@@ -433,7 +433,7 @@ public class MysqlToPgDdlUtil {
 
 
   
-    public static Table reflushTableAfterDDl(String fullTableName, Connection conn,Context cxt) throws Exception{
+    public static Table reflushTableAfterDDl(String fullTableName, Connection conn,Context cxt) throws BiremeException{
         HashMap<String,String> paramMap=new HashMap<>();
         paramMap.put(fullTableName,fullTableName);
         String[] tableName = fullTableName.split("\\.");
@@ -566,7 +566,7 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    public static Boolean executeDdlSql(Connection conn,String ddlSql) {
+    public static Boolean executeDdlSql(Connection conn,String ddlSql) throws BiremeException {
         List<String> listDdl=  Arrays.asList(ddlSql.split(";"));
         if(CollectionUtils.isNotEmpty(listDdl)){
             Statement statement=null;
@@ -579,14 +579,13 @@ public class MysqlToPgDdlUtil {
                 }
             } catch (Exception e) {
                 logger.error("-----------execute--ddl---error---ddlSQL:{}",ddlSql,e);
-                return false;
+                throw new BiremeException("-----------execute--ddl---error---ddlSQL------",e);
             }finally {
                 if(statement != null){
                     try {
                         statement.close();
                     } catch (SQLException e) {
-                        logger.error("close -----statement-------error",e);
-                        return false;
+                        throw new BiremeException("-----------execute--ddl---error---ddlSQL------",e);
                     }
                 }
             }
@@ -599,7 +598,7 @@ public class MysqlToPgDdlUtil {
     /*
    *  需改表名，新增表名 更新磁盘中配置文件
    */
-    public static synchronized void reflushConfigProperties(String oldTable,String newTable,String dataSource){
+    public static synchronized void reflushConfigProperties(String oldTable,String newTable,String dataSource) throws BiremeException{
         try {
             Configurations configs = new Configurations();
             Configuration tableConfig = null;
@@ -630,6 +629,7 @@ public class MysqlToPgDdlUtil {
             fileWriter.close();
         } catch (Exception e) {
            logger.error("---更新磁盘配置文件失败-------oldTable:{}----newTable:{}-",oldTable,newTable,e);
+           throw new BiremeException("---更新磁盘配置文件失败-------oldTable:{}----newTable:{}-",e);
         }
     }
 }
