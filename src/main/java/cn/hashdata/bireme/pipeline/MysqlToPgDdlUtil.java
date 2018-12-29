@@ -541,7 +541,16 @@ public class MysqlToPgDdlUtil {
         Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
         if(conn != null && StringUtils.isNotBlank(row.pgSql) && row.type != Row.RowType.TABLE_ALTER){
             logger.error("--------handleDDlTableSql---------pgSQL--------{}",row.pgSql);
-            executeDdlSql(conn,row.pgSql);
+            if(row.type == Row.RowType.TABLE_DROP){
+                try {
+                    executeDdlSql(conn,row.pgSql);
+                } catch (BiremeException e) {
+                    logger.error("---deleteTable--------异常",e);
+                }
+            }else{
+                executeDdlSql(conn,row.pgSql);
+            }
+
             try {
                 //加入内存中
                 if(row.type == Row.RowType.TABLE_CREATE){
