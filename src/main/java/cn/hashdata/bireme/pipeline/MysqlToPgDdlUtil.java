@@ -540,7 +540,7 @@ public class MysqlToPgDdlUtil {
     public static void handleDDlTableSql( Row row, Context cxt) throws BiremeException{
         Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
         if(conn != null && StringUtils.isNotBlank(row.pgSql)){
-            logger.error("--------createTableStart---------pgSQL--------{}",row.pgSql);
+            logger.error("--------handleDDlTableSql---------pgSQL--------{}",row.pgSql);
             executeDdlSql(conn,row.pgSql);
             try {
                 //加入内存中
