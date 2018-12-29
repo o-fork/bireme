@@ -139,24 +139,24 @@ public class MaxwellPipeLine extends KafkaPipeLine {
           row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_CREATE,record,row);
           row.tableFullName = getFullTableName(record);
           //如果是创建表直接返回false。不在继续往下走。并直接创建新表
-          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
-          return false;
+//          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+//          return false;
       }
       if (row.type == RowType.TABLE_DROP){//仅删除表
           row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_DROP,record,row);
           row.tableFullName = getFullTableName(record);
-          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
-          return false;
+//          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+//          return false;
       }
       if (row.type == RowType.DATABASE_CREATE){//创建库
           row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.DATABASE_CREATE,record,row);
-          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
-          return false;
+//          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+//          return false;
       }
       if (row.type == RowType.DATABASE_DROP){//删除库
           row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.DATABASE_CREATE,record,row);
-          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
-          return false;
+//          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+//          return false;
       }
       return true;
     }
