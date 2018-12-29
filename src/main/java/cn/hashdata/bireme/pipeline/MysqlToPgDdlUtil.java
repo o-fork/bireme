@@ -613,8 +613,6 @@ public class MysqlToPgDdlUtil {
                 while (tables.hasNext()) {
                     String mysqlTable = tables.next();
                     String pgTable = tableConfig.getString(mysqlTable);
-                    System.out.println(mysqlTable);
-                    System.out.println(oldTable.replaceAll("\"",""));
                     if(StringUtils.isBlank(oldTable) || !mysqlTable.equals(oldTable.replaceAll("\"",""))){
                         newHashMap.put(mysqlTable,pgTable);
                     }
