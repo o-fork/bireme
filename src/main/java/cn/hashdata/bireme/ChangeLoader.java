@@ -79,7 +79,7 @@ public class ChangeLoader implements Callable<Long> {
     this.mappedTable = mappedTable;
     this.table = cxt.tablesInfo.get(mappedTable);
     this.taskIn = taskIn;
-    this.copyThread = Executors.newFixedThreadPool(1, new ThreadFactory() {
+    this.copyThread = Executors.newFixedThreadPool(5, new ThreadFactory() {
       public Thread newThread(Runnable r) {
         Thread t = Executors.defaultThreadFactory().newThread(r);
         t.setDaemon(true);
