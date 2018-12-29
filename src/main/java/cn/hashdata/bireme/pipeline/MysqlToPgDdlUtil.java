@@ -585,7 +585,7 @@ public class MysqlToPgDdlUtil {
                     try {
                         statement.close();
                     } catch (SQLException e) {
-                        throw new BiremeException("-----------execute--ddl---error---ddlSQL------",e);
+                        logger.error("-----------execute--ddl---error---ddlSQL------",e);
                     }
                 }
             }
