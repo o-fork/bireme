@@ -116,7 +116,7 @@ public class GetPrimaryKeys {
             dbNameSet.add(strArray[0]);
         }
         for(String db:dbNameSet){
-            dbNameSb.append("'").append(db).append("',");
+            dbNameSb.append("'").append(db).append("'");
         }
         String prSql = "SELECT NULL AS TABLE_CAT, "
                 + "n.nspname  AS TABLE_SCHEM, "
