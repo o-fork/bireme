@@ -246,7 +246,7 @@ public class ChangeLoader implements Callable<Long> {
             String fullTableName=currentTask.fullTableName;
             String oldTableName=this.table.tableFullName;
             try {
-                logger.info("------------------更新表结构开始------beforeTable:{}-----afterTable:{}",oldTableName,fullTableName);
+                logger.info("------------------更新表结构开始------beforeTable:{}-----afterTable:{}--------currentTask.renameTable--:{}",oldTableName,fullTableName,currentTask.renameTable);
                 Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,cxt);
                 this.table = tableNew;
                 if(currentTask.renameTable){//存在修改表名字的sql

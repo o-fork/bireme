@@ -545,11 +545,12 @@ public class MysqlToPgDdlUtil {
             try {
                 //加入内存中
                 if(row.type == Row.RowType.TABLE_CREATE){
-                    logger.info("---------createTable-fullName---------:{}",row.tableFullName);
+                    logger.info("-----handleDDlTableSql----createTable-fullName---------:{}",row.tableFullName);
                     reflushTableAfterDDl(row.tableFullName,conn,cxt);
                     //更新配置文件 新增
                     reflushConfigProperties("",row.tableFullName,"maxwell1");
                 }else if(row.type == Row.RowType.TABLE_DROP){
+                    logger.info("----handleDDlTableSql-----dropTable-fullName---------:{}",row.tableFullName);
                     //更新配置文件 删除
                     reflushConfigProperties(row.tableFullName,"","maxwell1");
                 }
