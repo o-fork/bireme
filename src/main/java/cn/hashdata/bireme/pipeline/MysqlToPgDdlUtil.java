@@ -50,6 +50,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * @author: : yangyang.li
@@ -602,7 +603,7 @@ public class MysqlToPgDdlUtil {
             Configurations configs = new Configurations();
             Configuration tableConfig = null;
             tableConfig = configs.properties(new File("etc"+ File.separator + dataSource + ".properties"));
-            Map<String,String> newHashMap=new HashMap<String, String>();
+            TreeMap<String,String> newHashMap=new TreeMap<>();
             if(StringUtils.isNotBlank(newTable)){
                 newHashMap.put(newTable.replaceAll("\"",""),newTable);
             }
