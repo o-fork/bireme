@@ -212,10 +212,6 @@ public class RowCache {
             task.type = Row.RowType.UPDATE;
             break;
            case TABLE_ALTER:
-           case TABLE_CREATE:
-           case DATABASE_DROP:
-           case TABLE_DROP:
-             logger.error("---------loakTask---------type:{}",row.type);
              if(StringUtils.isNotBlank(row.pgSql)){
                 task.pgSql = row.pgSql;
                 task.type = Row.RowType.TABLE_ALTER;
