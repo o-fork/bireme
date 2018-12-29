@@ -538,8 +538,12 @@ public class MysqlToPgDdlUtil {
 
 
     public static void handleDDlTableSql( Row row, Context cxt) throws BiremeException{
-        Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
-        if(conn != null && StringUtils.isNotBlank(row.pgSql) && row.type != Row.RowType.TABLE_ALTER){
+        if( StringUtils.isNotBlank(row.pgSql) && ( row.type == Row.RowType.TABLE_DROP || row.type == Row.RowType.TABLE_CREATE
+           || row.type == Row.RowType.DATABASE_CREATE || row.type == Row.RowType.DATABASE_DROP )){
+            Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
+            if(conn == null){
+                return;
+            }
             logger.error("--------handleDDlTableSql---------pgSQL--------{}",row.pgSql);
             if(row.type == Row.RowType.TABLE_DROP || row.type == Row.RowType.DATABASE_DROP){
                 try {
