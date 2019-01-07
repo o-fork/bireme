@@ -610,7 +610,7 @@ public class MysqlToPgDdlUtil {
     /*
    *  需改表名，新增表名 更新磁盘中配置文件
    */
-    public static void reflushConfigProperties(String oldTable,String newTable,String dataSource) throws BiremeException{
+    public static synchronized void reflushConfigProperties(String oldTable,String newTable,String dataSource) throws BiremeException{
         try {
             Configurations configs = new Configurations();
             Configuration tableConfig = null;
