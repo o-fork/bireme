@@ -544,7 +544,7 @@ public class MysqlToPgDdlUtil {
             if(conn == null){
                 return;
             }
-            logger.error("--------handleDDlTableSql---------pgSQL--------{}",row.pgSql);
+            logger.info("--------handleDDlTableSql---------pgSQL--------{}",row.pgSql);
             if(row.type == Row.RowType.TABLE_DROP || row.type == Row.RowType.DATABASE_DROP){
                 try {
                     executeDdlSql(conn,row.pgSql);
