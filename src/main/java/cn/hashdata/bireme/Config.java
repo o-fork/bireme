@@ -99,8 +99,8 @@ public class Config {
           path = path.substring(0,path.indexOf("lib"));
           DEFAULT_TABLEMAP_DIR = path+"etc"+File.separator;
           return DEFAULT_TABLEMAP_DIR + "config.properties";
-      } catch (Exception e) {
-         logger.info("获取配置文件路径失败！");
+      } catch (UnsupportedEncodingException e) {
+          logger.error("获取文件文件路径失败",e);
       }
       return configFile;
   }
