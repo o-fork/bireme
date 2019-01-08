@@ -5,6 +5,7 @@
 package cn.hashdata.bireme;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,7 +30,7 @@ import cn.hashdata.bireme.pipeline.SourceConfig.SourceType;
  *
  */
 public class Config {
-  private static final String DEFAULT_TABLEMAP_DIR = "etc/";
+  private static  String DEFAULT_TABLEMAP_DIR = "etc/";
 
   private Logger logger = LogManager.getLogger("Bireme." + Config.class);
 
@@ -81,6 +82,7 @@ public class Config {
    */
   public Config(String configFile) throws ConfigurationException, BiremeException {
     Configurations configs = new Configurations();
+    configFile = getConfigPath(configFile);
     config = configs.properties(new File(configFile));
 
     basicConfig();
@@ -88,6 +90,19 @@ public class Config {
     dataSourceConfig();
 
     logConfig();
+  }
+
+  private String getConfigPath(String configFile){
+      try {
+          String path = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
+          path = java.net.URLDecoder.decode(path, "UTF-8");
+          path = path.substring(0,path.indexOf("lib"));
+          DEFAULT_TABLEMAP_DIR = path+"etc"+File.separator;
+          return DEFAULT_TABLEMAP_DIR + "config.properties";
+      } catch (UnsupportedEncodingException e) {
+         logger.info("获取配置文件路径失败！");
+      }
+      return configFile;
   }
 
   protected void basicConfig() {
