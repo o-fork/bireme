@@ -250,7 +250,7 @@ public class ChangeLoader implements Callable<Long> {
                 Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,cxt);
                 this.table = tableNew;
                 if(currentTask.renameTable){//存在修改表名字的sql
-                    MysqlToPgDdlUtil.reflushConfigProperties(oldTableName,fullTableName,"maxwell1");
+                    MysqlToPgDdlUtil.reflushConfigProperties(cxt,oldTableName,fullTableName,"maxwell1");
                 }
             } catch (Exception e) {
                 logger.error("---ddl语句执行后，获取更新后的表结构异常：table:{}",fullTableName,e);

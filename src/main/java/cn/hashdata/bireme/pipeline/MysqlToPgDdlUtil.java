@@ -560,11 +560,11 @@ public class MysqlToPgDdlUtil {
                     logger.info("-----handleDDlTableSql----createTable-fullName---------:{}",row.tableFullName);
                     reflushTableAfterDDl(row.tableFullName,conn,cxt);
                     //更新配置文件 新增
-                    reflushConfigProperties("",row.tableFullName,"maxwell1");
+                    reflushConfigProperties(cxt,"",row.tableFullName,"maxwell1");
                 }else if(row.type == Row.RowType.TABLE_DROP){
                     logger.info("----handleDDlTableSql-----dropTable-fullName---------:{}",row.tableFullName);
                     //更新配置文件 删除
-                    reflushConfigProperties(row.tableFullName,"","maxwell1");
+                    reflushConfigProperties(cxt,row.tableFullName,"","maxwell1");
                 }
             } catch (Exception e) {
                logger.info("------新建表-----加入内存中异常--------fullName:{}","",e);
@@ -610,11 +610,12 @@ public class MysqlToPgDdlUtil {
     /*
    *  需改表名，新增表名 更新磁盘中配置文件
    */
-    public static synchronized void reflushConfigProperties(String oldTable,String newTable,String dataSource) throws BiremeException{
+    public static synchronized void reflushConfigProperties(Context cxt,String oldTable,String newTable,String dataSource) throws BiremeException{
         try {
+            String path= cxt.conf.DEFAULT_TABLEMAP_DIR;
             Configurations configs = new Configurations();
             Configuration tableConfig = null;
-            tableConfig = configs.properties(new File("etc"+ File.separator + dataSource + ".properties"));
+            tableConfig = configs.properties(new File(path + dataSource + ".properties"));
             TreeMap<String,String> newHashMap=new TreeMap<>();
             if(StringUtils.isNotBlank(newTable)){
                 newHashMap.put(newTable.replaceAll("\"",""),newTable);
@@ -635,7 +636,7 @@ public class MysqlToPgDdlUtil {
                 String value=currentMap.getValue();
                 stringBuilder.append(key).append("=").append(value).append("\r\n");
             }
-            FileWriter fileWriter=new FileWriter(new File("etc"+File.separator + dataSource + ".properties"));
+            FileWriter fileWriter=new FileWriter(new File(path + dataSource + ".properties"));
             fileWriter.write(stringBuilder.toString());
             fileWriter.flush();
             fileWriter.close();

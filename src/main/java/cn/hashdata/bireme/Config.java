@@ -30,7 +30,7 @@ import cn.hashdata.bireme.pipeline.SourceConfig.SourceType;
  *
  */
 public class Config {
-  private static  String DEFAULT_TABLEMAP_DIR = "etc/";
+  public static  String DEFAULT_TABLEMAP_DIR = "etc/";
 
   private Logger logger = LogManager.getLogger("Bireme." + Config.class);
 
