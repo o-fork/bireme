@@ -95,6 +95,8 @@ public class Bireme implements Daemon {
 
     String config = cmd.getOptionValue("config_file", DEFAULT_CONFIG_FILE);
 
+    logger.info("--------config-----------:{}",config);
+
     cxt = new Context(new Config(config));
   }
 
