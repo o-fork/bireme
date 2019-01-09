@@ -1,5 +1,13 @@
 package cn.hashdata.bireme;
 
+import com.alibaba.druid.sql.SQLUtils;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
+import com.alibaba.druid.sql.ast.statement.SQLTableElement;
+import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
+import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -20,6 +28,7 @@ import java.io.StringWriter;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -34,36 +43,27 @@ public class Test {
 
     public static void main(String[] args) {
 
-        Option help = new Option("help", "print this message");
-        Option configFile =
-                Option.builder("config_file").hasArg().argName("file").desc("config file location").build();
-
-        Options opts = new Options();
-        opts.addOption(help);
-        opts.addOption(configFile);
-        CommandLine cmd = null;
-        CommandLineParser parser = new DefaultParser();
-
-        try {
-            cmd = parser.parse(opts, args);
-
-            if (cmd.hasOption("help")) {
-                throw new ParseException("print help message");
+        String sqlMysql = "create table A_TEST(ID int not null auto_increment primary key,name varchar(20))";
+        List<SQLStatement> statementList= SQLUtils.parseStatements(sqlMysql, JdbcConstants.MYSQL);
+        for(SQLStatement statement:statementList){
+            if(statement instanceof MySqlCreateTableStatement) {//创建表
+                MySqlCreateTableStatement createTableDDl=(MySqlCreateTableStatement)statement;
+                List<SQLTableElement> listColumns=  createTableDDl.getTableElementList();
+                for(SQLTableElement column:listColumns){
+                    if(column instanceof MySqlPrimaryKey){
+                        System.out.println(column);
+                        MySqlPrimaryKey primaryKey=(MySqlPrimaryKey)column;
+                        List<SQLSelectOrderByItem> listPrimaryKey= primaryKey.getColumns();
+                        for(SQLSelectOrderByItem item:listPrimaryKey){
+                            if(item.getExpr() instanceof SQLIdentifierExpr){
+                                SQLIdentifierExpr identifierExpr=(SQLIdentifierExpr)item.getExpr();
+                                System.out.println(identifierExpr.getName().toLowerCase());
+                            }
+                        }
+                    }
+                }
             }
-        } catch (ParseException e) {
-            HelpFormatter formatter = new HelpFormatter();
-            StringWriter out = new StringWriter();
-            PrintWriter writer = new PrintWriter(out);
-            formatter.printHelp(writer, formatter.getWidth(), "Bireme", null, opts,
-                    formatter.getLeftPadding(), formatter.getDescPadding(), null, true);
-            writer.flush();
-            String result = out.toString();
         }
-
-        String config = cmd.getOptionValue("config_file", "etcqqq/");
-
-        System.out.println(config);
-
     }
 
 
