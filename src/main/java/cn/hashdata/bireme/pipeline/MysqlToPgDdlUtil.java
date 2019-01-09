@@ -107,7 +107,7 @@ public class MysqlToPgDdlUtil {
         try {
             statementList = SQLUtils.parseStatements(sqlMysql, JdbcConstants.MYSQL);
         } catch (Exception e) {
-            logger.error("druid 解析sql 失败。不支持此sql-----------:{}",sqlMysql);
+            logger.error("druid 解析sql 失败。不支持此sql-----------:{}",sqlMysql,e);
         }
         if(statementList == null){
             return "";
