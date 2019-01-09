@@ -375,7 +375,7 @@ public class MysqlToPgDdlUtil {
             createSql.append("\"").append(database).append("\"").append(".").append("\"").append(table).append("\"").append("(");
             for(SQLStatement statement:statementList){
                 if(statement instanceof MySqlCreateTableStatement){//创建表
-                    List<String> listKey=new ArrayList<>();
+                    Set<String> listKey=new HashSet<>();
                     MySqlCreateTableStatement createTableDDl=(MySqlCreateTableStatement)statement;
                     List<SQLTableElement> listColumns=  createTableDDl.getTableElementList();
                     List<String> listComment=new ArrayList<>();
@@ -397,6 +397,10 @@ public class MysqlToPgDdlUtil {
                                        .append("\"").append(table).append("\"").append(".").append("").append(columnName).append("")
                                        .append(" IS ").append("'").append(comment).append("'").append(";");
                                listComment.add(commentSb.toString());
+                           }
+                           String columnInfo=currentItems.toString();
+                           if(columnInfo!=null && columnInfo.contains("PRIMARY KEY")){
+                               listKey.add("\""+columnName.toLowerCase()+"\"");
                            }
                         }
                         if(column instanceof MySqlPrimaryKey){

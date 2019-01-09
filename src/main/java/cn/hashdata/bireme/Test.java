@@ -3,6 +3,7 @@ package cn.hashdata.bireme;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
@@ -59,6 +60,17 @@ public class Test {
                                 SQLIdentifierExpr identifierExpr=(SQLIdentifierExpr)item.getExpr();
                                 System.out.println(identifierExpr.getName().toLowerCase());
                             }
+                        }
+                    }
+                    if(column instanceof SQLColumnDefinition){
+                        SQLColumnDefinition currentItems=(SQLColumnDefinition)column;
+                        String columnName=currentItems.getNameAsString();
+
+                        System.out.println(columnName);
+                        System.out.println(currentItems.toString());
+
+                        if(currentItems.toString()!=null && currentItems.toString().contains("PRIMARY KEY")){
+                            System.out.println(currentItems.toString());
                         }
                     }
                 }
