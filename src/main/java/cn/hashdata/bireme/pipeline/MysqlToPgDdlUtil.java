@@ -103,7 +103,12 @@ public class MysqlToPgDdlUtil {
             return "";
         }
         sqlMysql = sqlMysql.replaceAll("\r\n"," ").replaceAll("`","").replaceAll("/\\*.*\\*/","");
-        List<SQLStatement> statementList= SQLUtils.parseStatements(sqlMysql, JdbcConstants.MYSQL);
+        List<SQLStatement> statementList= null;
+        try {
+            statementList = SQLUtils.parseStatements(sqlMysql, JdbcConstants.MYSQL);
+        } catch (Exception e) {
+            logger.error("druid 解析sql 失败。不支持此sql-----------:{}",sqlMysql);
+        }
         if(statementList == null){
             return "";
         }
