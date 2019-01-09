@@ -426,7 +426,9 @@ public class MysqlToPgDdlUtil {
                             }
                         }
                     }
-                    createSqlStr = createSql.toString();
+                    if(!listKey.isEmpty()){
+                        createSqlStr = createSql.toString();
+                    }
                 }
             }
         } catch (Exception e) {
