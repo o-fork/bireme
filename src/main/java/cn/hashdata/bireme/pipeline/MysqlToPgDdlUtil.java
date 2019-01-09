@@ -212,7 +212,8 @@ public class MysqlToPgDdlUtil {
                         MySqlAlterTableModifyColumn modifyColumn=(MySqlAlterTableModifyColumn)item;
                         SQLColumnDefinition columnDefinition=  modifyColumn.getNewColumnDefinition();
                         String columnName= columnDefinition.getName().getSimpleName();
-                        String columnType= checkColumnType(old,columnDefinition.getDataType().getName(),columnName);
+                        List<SQLExpr> listExpr=columnDefinition.getDataType().getArguments();
+                        String columnType= checkColumnType(old,columnDefinition.getDataType().getName(),columnName,listExpr);
                         //修改列类型
                         modifyColumnSQL.append(" ALTER COLUMN ").append(columnName).append(" TYPE ").append(columnType).append(",");
                         //修改列注释
@@ -243,7 +244,8 @@ public class MysqlToPgDdlUtil {
                         //修改类型
                         StringBuilder changeColumnTypeSQL=new StringBuilder();
                         if(columnDefinitionChange.getDataType()!=null && columnDefinitionChange.getDataType().getName()!=null){
-                            String columnType= checkColumnType(old,columnDefinitionChange.getDataType().getName(),oldColumnName);
+                            List<SQLExpr> listExpr=columnDefinitionChange.getDataType().getArguments();
+                            String columnType= checkColumnType(old,columnDefinitionChange.getDataType().getName(),oldColumnName,listExpr);
                             changeColumnTypeSQL.append("ALTER TABLE ").append(database).append(".\"").append(newTable).append("\" ").append("ALTER ")
                                     .append(" COLUMN ").append(newColumnName).append(" TYPE ").append(columnType).append(";");
                             changeColumnList.add(changeColumnTypeSQL.toString());
@@ -319,17 +321,42 @@ public class MysqlToPgDdlUtil {
     }
 
 
+    private static String columnTypeLength(List<SQLExpr> listExpr){
+        String lengthStr="";
+        if(CollectionUtils.isNotEmpty(listExpr)){
+            StringBuilder length=new StringBuilder("(");
+            for(SQLExpr sqlExpr:listExpr){
+                if( sqlExpr instanceof SQLIntegerExpr){
+                    SQLIntegerExpr colum=(SQLIntegerExpr)sqlExpr;
+                    if( colum != null && colum.getNumber()!=null && colum.getNumber().intValue() > 0 ){
+                        int number= (colum.getNumber().intValue()*2 );
+                        length.append( number >= 2000 ? 2000 : number);
+                        if(listExpr.size() > 1){
+                            length.append(",");
+                        }
+                    }
+                }
+            }
+            lengthStr=length.toString();
+            if(StringUtils.isNotBlank(lengthStr) && lengthStr.endsWith(",")){
+                lengthStr = lengthStr.substring(0,lengthStr.length()-1);
+            }
+            lengthStr = lengthStr +")";
+        }
+        return lengthStr;
+    }
 
 
-    private static String checkColumnType(JsonObject old,String newType,String columnName){
+    private static String checkColumnType(JsonObject old,String newType,String columnName,List<SQLExpr> listExpr){
         String oldType=null;
+        String lengthStr=columnTypeLength(listExpr);
         if(old.has("columns") && !old.get("columns").isJsonNull()){
             JsonArray jsonArray= old.getAsJsonArray("columns");
             for(int i=0;i<jsonArray.size();i++){
                 JsonObject curr=jsonArray.get(i).getAsJsonObject();
                 if(curr.has("name") && columnName.equals(curr.get("name").getAsString())){
                     oldType= curr.get("type").getAsString();
-                    String newModifyType= checkMysqlTypeToPgType(oldType,newType);
+                    String newModifyType= checkMysqlTypeToPgType(oldType,newType,lengthStr);
                     if(newModifyType!=null){
                         return newModifyType;
                     }
@@ -341,7 +368,7 @@ public class MysqlToPgDdlUtil {
 
 
 
-    private static String checkMysqlTypeToPgType(String oldType,String newType){
+    private static String checkMysqlTypeToPgType(String oldType,String newType,String lengthStr){
         oldType = oldType.toLowerCase().trim();
         newType = newType.toLowerCase().trim();
         if(intType.contains(oldType) && intType.contains(newType)){
@@ -349,12 +376,12 @@ public class MysqlToPgDdlUtil {
         }
         if(intType.contains(oldType) || timeType.contains(oldType)  ){
             if(floatType.contains(newType)){
-                return "numeric(20,4)";
+                return "numeric"+lengthStr;
             }
-            return "varchar(50)";
+            return "varchar"+lengthStr;
         }
         if(charType.contains(oldType) && charType.contains(newType)){
-            return "varchar(200)";
+            return "varchar"+lengthStr;
         }
         if(dateType.contains(oldType) && dateType.contains(newType)){
             return "timestamp without time zone";
@@ -475,27 +502,7 @@ public class MysqlToPgDdlUtil {
 
     private static String mysqlTypeToPgType(String dataType,List<SQLExpr> sqlExprList) throws Exception{
         String pgColumn="";
-        String lengthStr=null;
-        if(CollectionUtils.isNotEmpty(sqlExprList)){
-            StringBuilder length=new StringBuilder("(");
-            for(SQLExpr sqlExpr:sqlExprList){
-                if( sqlExpr instanceof SQLIntegerExpr){
-                    SQLIntegerExpr colum=(SQLIntegerExpr)sqlExpr;
-                    if( colum != null && colum.getNumber()!=null && colum.getNumber().intValue() > 0 ){
-                        int number= (colum.getNumber().intValue()*2 );
-                        length.append( number >= 600 ? 600 : number);
-                        if(sqlExprList.size() > 1){
-                            length.append(",");
-                        }
-                    }
-                }
-            }
-            lengthStr=length.toString();
-            if(StringUtils.isNotBlank(lengthStr) && lengthStr.endsWith(",")){
-                lengthStr = lengthStr.substring(0,lengthStr.length()-1);
-            }
-            lengthStr = lengthStr +")";
-        }
+        String lengthStr=columnTypeLength(sqlExprList);
         switch (dataType.toUpperCase()){
             case "MEDIUMINT":
             case "INT":
