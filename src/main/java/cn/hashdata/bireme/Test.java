@@ -3,10 +3,13 @@ package cn.hashdata.bireme;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
+import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableChangeColumn;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.util.JdbcConstants;
 import com.alibaba.fastjson.JSONObject;
@@ -44,7 +47,7 @@ public class Test {
 
     public static void main(String[] args) {
 
-        String sqlMysql = "create table A_TEST(ID int not null auto_increment primary key,name varchar(20))";
+        String sqlMysql = "alter table A_TEST change NAME NAME1 VARCHRA(55),CHANGE aaaa COUNTRY COUNTRY(150)";
         List<SQLStatement> statementList= SQLUtils.parseStatements(sqlMysql, JdbcConstants.MYSQL);
         for(SQLStatement statement:statementList){
             if(statement instanceof MySqlCreateTableStatement) {//创建表
@@ -74,6 +77,25 @@ public class Test {
                         }
                     }
                 }
+            }
+            if(statement instanceof SQLAlterTableStatement){
+                SQLAlterTableStatement alterTableStatement=(SQLAlterTableStatement)statement;
+                List<SQLAlterTableItem> listAlter=alterTableStatement.getItems();
+                for(SQLAlterTableItem item:listAlter){
+
+                    if(item instanceof MySqlAlterTableChangeColumn){
+
+                        MySqlAlterTableChangeColumn changeColumn=(MySqlAlterTableChangeColumn)item;
+                        String oldColumnName= changeColumn.getColumnName().getSimpleName();
+                        SQLColumnDefinition columnDefinitionChange= changeColumn.getNewColumnDefinition();
+                        String newColumnName=columnDefinitionChange.getName().getSimpleName();
+                        StringBuilder changeColumnSQL=new StringBuilder();
+                        changeColumnSQL.append("ALTER TABLE ").append("aaaa").append(".\"").append("ccccc").append("\" RENAME ").append(oldColumnName)
+                                .append(" TO ").append(newColumnName).append(";");
+                        System.out.println(changeColumnSQL.toString());
+                    }
+                }
+
             }
         }
     }
