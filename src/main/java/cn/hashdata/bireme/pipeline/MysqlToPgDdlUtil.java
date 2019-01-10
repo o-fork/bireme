@@ -392,6 +392,9 @@ public class MysqlToPgDdlUtil {
             return "timestamp without time zone";
         }
         if(charType.contains(oldType) && !charType.contains(newType)){
+            if(bigType.contains(newType)){
+                return "text";
+            }
             return null;
         }
         if(bigType.contains(newType)){
