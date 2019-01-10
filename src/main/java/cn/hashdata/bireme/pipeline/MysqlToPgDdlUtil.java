@@ -391,10 +391,13 @@ public class MysqlToPgDdlUtil {
         if(dateType.contains(oldType) && dateType.contains(newType)){
             return "timestamp without time zone";
         }
+        if(charType.contains(oldType) && !charType.contains(newType)){
+            return null;
+        }
         if(bigType.contains(newType)){
             return "text";
         }
-        return "varchar(60)";
+        return "varchar(300)";
     }
 
 
