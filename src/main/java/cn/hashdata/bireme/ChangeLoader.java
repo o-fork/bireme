@@ -240,7 +240,11 @@ public class ChangeLoader implements Callable<Long> {
     boolean success= false;
     if(StringUtils.isNotBlank(currentTask.pgSql)){
         logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
-        success= MysqlToPgDdlUtil.executeDdlSql(conn,currentTask.pgSql);
+        try {
+            success= MysqlToPgDdlUtil.executeDdlSql(conn,currentTask.pgSql);
+        } catch (BiremeException e) {
+            logger.error("ddl 执行异常，sql:{}",currentTask.pgSql,e);
+        }
         //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
         if(success && (currentTask.type == Row.RowType.TABLE_ALTER)){
             String fullTableName=currentTask.fullTableName;
