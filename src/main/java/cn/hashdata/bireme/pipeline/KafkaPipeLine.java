@@ -202,7 +202,7 @@ public abstract class KafkaPipeLine extends PipeLine {
     Properties props = new Properties();
     props.put("bootstrap.servers", server);
     props.put("group.id", groupID);
-    props.put("enable.auto.commit", true);
+    props.put("enable.auto.commit", false);
     props.put("session.timeout.ms", 60000);
     props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
     props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
