@@ -116,8 +116,12 @@ public abstract class KafkaPipeLine extends PipeLine {
         if (!transform(change, row)) {
           continue;
         }
-        MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
-        addToRowSet(row, rowSet);
+          try {
+              MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+          } catch (BiremeException e1) {
+              logger.error("ddl语句执行出错",e1);
+          }
+          addToRowSet(row, rowSet);
         offsets.put(change.topic() + "+" + change.partition(), change.offset());
         callback.setNewestRecord(row.produceTime);
       }
