@@ -561,7 +561,7 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    public static void handleDDlTableSql( Row row, Context cxt) throws BiremeException{
+    public static void handleDDlTableSql( Row row, Context cxt) throws Exception{
         if( StringUtils.isNotBlank(row.pgSql) && ( row.type == Row.RowType.TABLE_DROP || row.type == Row.RowType.TABLE_CREATE
            || row.type == Row.RowType.DATABASE_CREATE || row.type == Row.RowType.DATABASE_DROP )){
             Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
@@ -572,7 +572,7 @@ public class MysqlToPgDdlUtil {
             if(row.type == Row.RowType.TABLE_DROP || row.type == Row.RowType.DATABASE_DROP){
                 try {
                     executeDdlSql(conn,row.pgSql);
-                } catch (BiremeException e) {
+                } catch (Exception e) {
                     logger.error("---deleteTable--------异常",e);
                 }
             }else{
@@ -602,7 +602,7 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    public static Boolean executeDdlSql(Connection conn,String ddlSql) throws BiremeException {
+    public static Boolean executeDdlSql(Connection conn,String ddlSql)  {
         List<String> listDdl=  Arrays.asList(ddlSql.split(";"));
         if(CollectionUtils.isNotEmpty(listDdl)){
             Statement statement=null;
@@ -615,7 +615,7 @@ public class MysqlToPgDdlUtil {
                 }
             } catch (Exception e) {
                 logger.error("-----------execute--ddl---error---ddlSQL:{}",ddlSql,e);
-                throw new BiremeException("-----------execute--ddl---error---ddlSQL------",e);
+//                throw new BiremeException("-----------execute--ddl---error---ddlSQL------",e);
             }finally {
                 if(statement != null){
                     try {

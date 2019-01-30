@@ -118,7 +118,7 @@ public abstract class KafkaPipeLine extends PipeLine {
         }
           try {
               MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
-          } catch (BiremeException e1) {
+          } catch (Exception e1) {
               logger.error("ddl语句执行出错",e1);
           }
           addToRowSet(row, rowSet);
