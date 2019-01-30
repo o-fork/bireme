@@ -569,14 +569,10 @@ public class MysqlToPgDdlUtil {
                 return;
             }
             logger.info("--------handleDDlTableSql---------pgSQL--------{}",row.pgSql);
-            if(row.type == Row.RowType.TABLE_DROP || row.type == Row.RowType.DATABASE_DROP){
-                try {
-                    executeDdlSql(conn,row.pgSql);
-                } catch (Exception e) {
-                    logger.error("---deleteTable--------异常",e);
-                }
-            }else{
+            try {
                 executeDdlSql(conn,row.pgSql);
+            } catch (Exception e) {
+                logger.error("---deleteTable--------异常",e);
             }
             try {
                 //加入内存中
