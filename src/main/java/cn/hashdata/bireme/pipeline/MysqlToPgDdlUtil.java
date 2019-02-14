@@ -598,7 +598,7 @@ public class MysqlToPgDdlUtil {
     }
 
 
-    public static Boolean executeDdlSql(Connection conn,String ddlSql)  {
+    public static Boolean executeDdlSql(Connection conn,String ddlSql) throws BiremeException {
         List<String> listDdl=  Arrays.asList(ddlSql.split(";"));
         if(CollectionUtils.isNotEmpty(listDdl)){
             Statement statement=null;
@@ -611,7 +611,7 @@ public class MysqlToPgDdlUtil {
                 }
             } catch (Exception e) {
                 logger.error("-----------execute--ddl---error---ddlSQL:{}",ddlSql,e);
-//                throw new BiremeException("-----------execute--ddl---error---ddlSQL------",e);
+                throw new BiremeException("-----------execute--ddl---error---ddlSQL------",e);
             }finally {
                 if(statement != null){
                     try {
