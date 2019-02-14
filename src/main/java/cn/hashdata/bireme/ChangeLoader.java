@@ -4,8 +4,11 @@
 
 package cn.hashdata.bireme;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.sql.Connection;
@@ -248,14 +251,14 @@ public class ChangeLoader implements Callable<Long> {
             throw new BiremeException("---ddl语句异常",e);
         }
         //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
-        if(success && (currentTask.type == Row.RowType.TABLE_ALTER)){
+        if(success){
             String fullTableName=currentTask.fullTableName;
             String oldTableName=this.table.tableFullName;
             try {
                 logger.info("------------------更新表结构开始------beforeTable:{}-----afterTable:{}--------currentTask.renameTable--:{}",oldTableName,fullTableName,currentTask.renameTable);
                 Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,cxt);
                 this.table = tableNew;
-                if(currentTask.renameTable){//存在修改表名字的sql
+                if(currentTask.renameTable &&  (currentTask.type == Row.RowType.TABLE_ALTER)){//存在修改表名字的sql
                     MysqlToPgDdlUtil.reflushConfigProperties(cxt,oldTableName,fullTableName,"maxwell1");
                 }
             } catch (Exception e) {
@@ -457,8 +460,8 @@ public class ChangeLoader implements Callable<Long> {
     public Long call() throws SQLException, IOException {
       try {
         CopyManager mgr = new CopyManager((BaseConnection) conn);
-        loggerSql(sql, pipeIn);
-        return mgr.copyIn(sql, pipeIn);
+        InputStream pileIn=  loggerSql(sql, pipeIn);
+        return mgr.copyIn(sql, pileIn);
       } finally {
         try {
           pipeIn.close();
@@ -469,7 +472,8 @@ public class ChangeLoader implements Callable<Long> {
     }
   }
 
-  public void loggerSql(String sql,PipedInputStream pipeIn){
+  public InputStream loggerSql(String sql,PipedInputStream pipeIn){
+      ByteArrayInputStream inputStream=null;
       try {
           byte[] bcache = new byte[1024];
           int readSize = 0;//每次读取的字节长度
@@ -479,11 +483,14 @@ public class ChangeLoader implements Callable<Long> {
               //将bcache中读取的input数据写入infoStream
               infoStream.write(bcache,0,readSize);
           }
+          pipeIn.close();
+          inputStream=new ByteArrayInputStream(infoStream.toByteArray());
           String sqlInfo= infoStream.toString("utf-8");
           logger.error("------CopyManager-----sql:{},PipedInputStream:{}",sql,sqlInfo);
       } catch (Exception e) {
           logger.error("非阻碍",e);
       }
+      return inputStream;
   }
 
   private void tupleWriter(PipedOutputStream pipeOut, Set<String> tuples) throws BiremeException {
