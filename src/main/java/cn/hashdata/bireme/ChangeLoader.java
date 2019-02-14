@@ -4,6 +4,7 @@
 
 package cn.hashdata.bireme;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -456,6 +457,7 @@ public class ChangeLoader implements Callable<Long> {
     public Long call() throws SQLException, IOException {
       try {
         CopyManager mgr = new CopyManager((BaseConnection) conn);
+        loggerSql(sql, pipeIn);
         return mgr.copyIn(sql, pipeIn);
       } finally {
         try {
@@ -465,6 +467,23 @@ public class ChangeLoader implements Callable<Long> {
         }
       }
     }
+  }
+
+  public void loggerSql(String sql,PipedInputStream pipeIn){
+      try {
+          byte[] bcache = new byte[1024];
+          int readSize = 0;//每次读取的字节长度
+          ByteArrayOutputStream infoStream = new ByteArrayOutputStream();
+          //一次性读取2048字节
+          while ((readSize = pipeIn.read(bcache)) > 0) {
+              //将bcache中读取的input数据写入infoStream
+              infoStream.write(bcache,0,readSize);
+          }
+          String sqlInfo= infoStream.toString("utf-8");
+          logger.error("------CopyManager-----sql:{},PipedInputStream:{}",sql,sqlInfo);
+      } catch (Exception e) {
+          logger.error("非阻碍",e);
+      }
   }
 
   private void tupleWriter(PipedOutputStream pipeOut, Set<String> tuples) throws BiremeException {
