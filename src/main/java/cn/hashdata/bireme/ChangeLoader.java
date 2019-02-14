@@ -461,6 +461,9 @@ public class ChangeLoader implements Callable<Long> {
       try {
         CopyManager mgr = new CopyManager((BaseConnection) conn);
         InputStream pileIn=  loggerSql(sql, pipeIn);
+        if(pileIn == null){
+            return 0L;
+        }
         return mgr.copyIn(sql, pileIn);
       } finally {
         try {
