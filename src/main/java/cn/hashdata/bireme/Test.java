@@ -47,7 +47,7 @@ public class Test {
 
     public static void main(String[] args) {
 
-        String sqlMysql = "alter table A_TEST change NAME NAME1 VARCHRA(55),CHANGE aaaa COUNTRY COUNTRY(150)";
+       /* String sqlMysql = "alter table A_TEST change NAME NAME1 VARCHRA(55),CHANGE aaaa COUNTRY COUNTRY(150)";
         List<SQLStatement> statementList= SQLUtils.parseStatements(sqlMysql, JdbcConstants.MYSQL);
         for(SQLStatement statement:statementList){
             if(statement instanceof MySqlCreateTableStatement) {//创建表
@@ -97,10 +97,23 @@ public class Test {
                 }
 
             }
-        }
+        }*/
+
+        String sql="COPY ttpai_boss_v1.\"BOSS_LOG\" (id,account_id,ip,depict,modify_time,create_time,add_test) FROM STDIN WITH DELIMITER '|' NULL '' CSV QUOTE '\"' ESCAPE E'\\\\'";
+        System.out.println(search(sql,","));
     }
 
 
+
+    public static int search(String str,String strRes) {
+        int n=0;
+        while(str.indexOf(strRes)!=-1) {
+            int i = str.indexOf(strRes);
+            n++;
+            str = str.substring(i+1);
+        }
+        return n;
+    }
 
 
 

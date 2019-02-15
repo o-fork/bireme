@@ -220,6 +220,34 @@ public class ChangeLoader implements Callable<Long> {
    */
   protected void executeTask() throws BiremeException, InterruptedException {
 
+      //ddl语句
+      boolean success= false;
+      if(StringUtils.isNotBlank(currentTask.pgSql)){
+          logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
+          try {
+              success= MysqlToPgDdlUtil.executeDdlSql(conn,currentTask.pgSql);
+          } catch (Exception e) {
+              logger.error("ddl 执行异常，sql:{}",currentTask.pgSql,e);
+              throw new BiremeException("---ddl语句异常",e);
+          }
+          //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
+          if(success){
+              String fullTableName=currentTask.fullTableName;
+              String oldTableName=this.table.tableFullName;
+              try {
+                  logger.info("------------------更新表结构开始------beforeTable:{}-----afterTable:{}--------currentTask.renameTable--:{}",oldTableName,fullTableName,currentTask.renameTable);
+                  Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,cxt);
+                  this.table = tableNew;
+                  if(currentTask.renameTable &&  (currentTask.type == Row.RowType.TABLE_ALTER)){//存在修改表名字的sql
+                      MysqlToPgDdlUtil.reflushConfigProperties(cxt,oldTableName,fullTableName,"maxwell1");
+                  }
+              } catch (Exception e) {
+                  logger.error("---ddl语句执行后，获取更新后的表结构异常：table:{}",fullTableName,e);
+                  throw new BiremeException("---ddl语句执行后，获取更新后的表结构异常",e);
+              }
+          }
+      }
+
     if (!currentTask.delete.isEmpty() || (!optimisticMode && !currentTask.insert.isEmpty())) {
       int size = currentTask.delete.size();
 
@@ -238,34 +266,6 @@ public class ChangeLoader implements Callable<Long> {
       HashSet<String> insertSet = new HashSet<String>();
       insertSet.addAll(currentTask.insert.values());
       executeInsert(insertSet);
-    }
-
-    //ddl语句
-    boolean success= false;
-    if(StringUtils.isNotBlank(currentTask.pgSql)){
-        logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
-        try {
-            success= MysqlToPgDdlUtil.executeDdlSql(conn,currentTask.pgSql);
-        } catch (Exception e) {
-            logger.error("ddl 执行异常，sql:{}",currentTask.pgSql,e);
-            throw new BiremeException("---ddl语句异常",e);
-        }
-        //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
-        if(success){
-            String fullTableName=currentTask.fullTableName;
-            String oldTableName=this.table.tableFullName;
-            try {
-                logger.info("------------------更新表结构开始------beforeTable:{}-----afterTable:{}--------currentTask.renameTable--:{}",oldTableName,fullTableName,currentTask.renameTable);
-                Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,cxt);
-                this.table = tableNew;
-                if(currentTask.renameTable &&  (currentTask.type == Row.RowType.TABLE_ALTER)){//存在修改表名字的sql
-                    MysqlToPgDdlUtil.reflushConfigProperties(cxt,oldTableName,fullTableName,"maxwell1");
-                }
-            } catch (Exception e) {
-                logger.error("---ddl语句执行后，获取更新后的表结构异常：table:{}",fullTableName,e);
-                throw new BiremeException("---ddl语句执行后，获取更新后的表结构异常",e);
-            }
-        }
     }
 
     try {
@@ -489,12 +489,30 @@ public class ChangeLoader implements Callable<Long> {
           pipeIn.close();
           inputStream=new ByteArrayInputStream(infoStream.toByteArray());
           String sqlInfo= infoStream.toString("utf-8");
-          logger.error("------CopyManager-----sql:{},PipedInputStream:{}",sql,sqlInfo);
+          //判断 sql中的列数 是否与数据中的 列数一致。如果不一致，不同步。
+          if(StringUtils.isNotBlank(sql) && StringUtils.isNotBlank(sqlInfo)){
+             int sqlInt= search(sql,",");
+             int sqlInfoInt=search(sqlInfo,"|");
+             if(sqlInfoInt < sqlInt){
+                 return null;
+             }
+              logger.error("------CopyManager-----sql:{},PipedInputStream:{}",sql,sqlInfo);
+          }
       } catch (Exception e) {
           logger.error("非阻碍",e);
       }
       return inputStream;
   }
+
+    private static int search(String str,String strRes) {
+        int n=0;
+        while(str.indexOf(strRes)!=-1) {
+            int i = str.indexOf(strRes);
+            n++;
+            str = str.substring(i+1);
+        }
+        return n;
+    }
 
   private void tupleWriter(PipedOutputStream pipeOut, Set<String> tuples) throws BiremeException {
     byte[] data = null;
