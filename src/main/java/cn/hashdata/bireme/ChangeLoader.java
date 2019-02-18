@@ -220,6 +220,26 @@ public class ChangeLoader implements Callable<Long> {
    */
   protected void executeTask() throws BiremeException, InterruptedException {
 
+    if (!currentTask.delete.isEmpty() || (!optimisticMode && !currentTask.insert.isEmpty())) {
+      int size = currentTask.delete.size();
+
+      if (!optimisticMode) {
+        currentTask.delete.addAll(currentTask.insert.keySet());
+      }
+
+      if (executeDelete(currentTask.delete) <= size && optimisticMode == false) {
+        optimisticMode = true;
+
+        logger.info("Chang to optimistic mode.");
+      }
+    }
+
+    if (!currentTask.insert.isEmpty()) {
+      HashSet<String> insertSet = new HashSet<String>();
+      insertSet.addAll(currentTask.insert.values());
+      executeInsert(insertSet);
+    }
+
       //ddl语句
       boolean success= false;
       if(StringUtils.isNotBlank(currentTask.pgSql)){
@@ -247,26 +267,6 @@ public class ChangeLoader implements Callable<Long> {
               }
           }
       }
-
-    if (!currentTask.delete.isEmpty() || (!optimisticMode && !currentTask.insert.isEmpty())) {
-      int size = currentTask.delete.size();
-
-      if (!optimisticMode) {
-        currentTask.delete.addAll(currentTask.insert.keySet());
-      }
-
-      if (executeDelete(currentTask.delete) <= size && optimisticMode == false) {
-        optimisticMode = true;
-
-        logger.info("Chang to optimistic mode.");
-      }
-    }
-
-    if (!currentTask.insert.isEmpty()) {
-      HashSet<String> insertSet = new HashSet<String>();
-      insertSet.addAll(currentTask.insert.values());
-      executeInsert(insertSet);
-    }
 
     try {
       conn.commit();
@@ -460,11 +460,11 @@ public class ChangeLoader implements Callable<Long> {
     public Long call() throws SQLException, IOException {
       try {
         CopyManager mgr = new CopyManager((BaseConnection) conn);
-        InputStream pileIn=  loggerSql(sql, pipeIn);
+        /*InputStream pileIn=  loggerSql(sql, pipeIn);
         if(pileIn == null){
             return 0L;
-        }
-        return mgr.copyIn(sql, pileIn);
+        }*/
+        return mgr.copyIn(sql, pipeIn);
       } finally {
         try {
           pipeIn.close();
@@ -494,9 +494,10 @@ public class ChangeLoader implements Callable<Long> {
              int sqlInt= search(sql,",");
              int sqlInfoInt=search(sqlInfo,"|");
              if(sqlInfoInt < sqlInt){
+                 logger.error("------CopyManager-----sqlInfoInt-|-:{},sqlInt-,-:{}",sqlInfoInt,sqlInt);
                  return null;
              }
-              logger.error("------CopyManager-----sql:{},PipedInputStream:{}",sql,sqlInfo);
+//              logger.error("------CopyManager-----sql:{},PipedInputStream:{}",sql,sqlInfo);
           }
       } catch (Exception e) {
           logger.error("非阻碍",e);
