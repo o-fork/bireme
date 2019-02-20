@@ -29,7 +29,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
   public MaxwellPipeLine(Context cxt, SourceConfig conf, int id) {
     super(cxt, conf, "Maxwell-" + conf.name + "-" + conf.topic + "-" + id);
     consumer.subscribe(Arrays.asList(conf.topic));
-    logger = LogManager.getLogger("Bireme." + myName);
+    logger = LogManager.getLogger(MaxwellPipeLine.class);
     logger.info("Create new Maxwell Pipeline. Name: {}", myName);
   }
 

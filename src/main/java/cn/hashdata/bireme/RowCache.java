@@ -27,7 +27,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class RowCache {
   static final protected Long TIMEOUT_MS = 1000L;
-  private static Logger logger = LogManager.getLogger("Bireme." + RowCache.class);
+  private static Logger logger = LogManager.getLogger(RowCache.class);
   public Context cxt;
   public String tableName;
   public PipeLine pipeLine;

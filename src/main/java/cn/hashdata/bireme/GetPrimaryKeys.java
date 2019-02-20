@@ -16,7 +16,7 @@ import java.util.*;
  * @author zuanqi
  */
 public class GetPrimaryKeys {
-  private static Logger logger = LogManager.getLogger("Bireme." + GetPrimaryKeys.class);
+  private static Logger logger = LogManager.getLogger(GetPrimaryKeys.class);
 
   public static Map<String, List<String>> getPrimaryKeys(
       HashMap<String, String> tableMap, Connection conn) throws Exception {

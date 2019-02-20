@@ -2,34 +2,31 @@
 <Configuration status="WARN">
   <Appenders>
     <Console name="Console" target="SYSTEM_ERR">
-      <PatternLayout pattern="%d{HH:mm:ss,SSS} %-5level %logger{1} - %msg%n"/>
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{-1} - %msg%n"/>
     </Console>
     <Console name="BiremeConsole" target="SYSTEM_OUT">
-      <PatternLayout pattern="%d{HH:mm:ss} %-5level %logger{-1} - %msg%n"/>"
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{-1} - %msg%n"/>"
     </Console>
+
+      <!-- 按天输出日志 -->
+      <RollingFile name="RollingFile" fileName="/opt/websuite/logs/bireme.log"
+                   filePattern="/opt/websuite/logs/bireme-%d{yyyy-MM-dd}.log">
+          <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{-1} - %msg%n" />
+          <Policies>
+              <TimeBasedTriggeringPolicy modulate="true" interval="1"/>
+          </Policies>
+      </RollingFile>
+
   </Appenders>
-
-    <!-- 日志输出到文件，可以配置多久产生一个新的日志信息文件 -->
-    <appender name="dailyRollingAppender" class="org.apache.log4j.DailyRollingFileAppender" >
-        <!-- 文件文件全路径名 -->
-        <param name="File" value="/usr/local/logs/bireme.out" />
-        <param name="Append" value="true" />
-        <!-- 设置日志备份频率，默认：为每天一个日志文件 -->
-        <param name="DatePattern" value="'.'yyyy-MM-dd-HH:mm'.log'" />
-
-        <!--每分钟一个备份-->
-        <!--<param name="DatePattern" value="'.'yyyy-MM-dd-HH-mm'.log'" />-->
-        <layout class="org.apache.log4j.PatternLayout">
-            <param name="ConversionPattern" value="[%p][%d{HH:mm:ss SSS}][%c]-[%m]%n"/>
-        </layout>
-    </appender>
 
   <Loggers>
     <Root level="error">
-      <AppenderRef ref="Console"/>
+        <AppenderRef ref="Console"/>
     </Root>
     <Logger name="cn.hashdata.bireme" level="info" additivity="false">
-      <AppenderRef ref="BiremeConsole" />
-    </Logger> 
+        <AppenderRef ref="RollingFile" />
+        <AppenderRef ref="BiremeConsole" />
+    </Logger>
+
   </Loggers>
 </Configuration>

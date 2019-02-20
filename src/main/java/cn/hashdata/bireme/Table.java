@@ -32,7 +32,7 @@ import java.util.List;
  */
 public class Table {
 
-  private static Logger logger = LogManager.getLogger("Bireme." + Table.class);
+  private static Logger logger = LogManager.getLogger(Table.class);
   public int ncolumns;
   public ArrayList<String> columnName;
   public HashMap<String, Integer> columnType;

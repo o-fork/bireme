@@ -61,7 +61,7 @@ import java.util.TreeMap;
 public class MysqlToPgDdlUtil {
 
 
-    private static Logger logger= LogManager.getLogger("Bireme." + MysqlToPgDdlUtil.class);
+    private static Logger logger= LogManager.getLogger(MysqlToPgDdlUtil.class);
     private static List<String> intType=new ArrayList<>();
     private static List<String> charType=new ArrayList<>();
     private static List<String> bigType=new ArrayList<>();

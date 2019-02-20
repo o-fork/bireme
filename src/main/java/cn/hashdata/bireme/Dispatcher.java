@@ -24,7 +24,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class Dispatcher {
 
-  private static Logger logger= LogManager.getLogger("Bireme." +Dispatcher.class);
+  private static Logger logger= LogManager.getLogger(Dispatcher.class);
   public Context cxt;
   public PipeLine pipeLine;
   public RowSet rowSet;

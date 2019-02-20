@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 public class BiremeUtility {
 
-    private static Logger logger= LogManager.getLogger("Bireme." + BiremeUtility.class);
+    private static Logger logger= LogManager.getLogger(BiremeUtility.class);
   /**
    * Establish connection to database.
    *
