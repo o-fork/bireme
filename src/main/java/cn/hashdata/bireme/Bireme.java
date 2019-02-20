@@ -59,7 +59,7 @@ public class Bireme implements Daemon {
   private DaemonContext context;
   private Context cxt;
 
-  private Logger logger = LogManager.getLogger("Bireme");
+  private Logger logger = LogManager.getLogger(Bireme.class);
 
   private ConsoleReporter consoleReporter;
   private JmxReporter jmxReporter;
