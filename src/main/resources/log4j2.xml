@@ -9,8 +9,8 @@
     </Console>
 
       <!-- 按天输出日志 -->
-      <RollingFile name="RollingFile" fileName="/opt/websuite/logs/bireme.log"
-                   filePattern="/opt/websuite/logs/bireme-%d{yyyy-MM-dd}.log">
+      <RollingFile name="RollingFile" fileName="/opt/websuite/bireme-2.0.0-alpha-1/logs/bireme.log"
+                   filePattern="/opt/websuite/bireme-2.0.0-alpha-1/logs/bireme-%d{yyyy-MM-dd}.log">
           <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{-1} - %msg%n" />
           <Policies>
               <TimeBasedTriggeringPolicy modulate="true" interval="1"/>
