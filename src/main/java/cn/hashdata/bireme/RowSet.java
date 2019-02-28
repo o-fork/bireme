@@ -14,21 +14,24 @@ import java.util.HashMap;
  * @author yuze
  */
 public class RowSet {
-  public Date createdAt;
-  public HashMap<String, ArrayList<Row>> rowBucket;
-  public CommitCallback callback;
 
-  public RowSet() {
-    rowBucket = new HashMap<String, ArrayList<Row>>();
-  }
+    public Date createdAt;
 
-  /**
-   * Destroy the {@code RowSet}.
-   */
-  public void destory() {
-    createdAt = null;
-    rowBucket.clear();
-    rowBucket = null;
-    callback = null;
-  }
+    public HashMap<String, ArrayList<Row>> rowBucket;
+
+    public CommitCallback callback;
+
+    public RowSet() {
+        rowBucket = new HashMap<>();
+    }
+
+    /**
+     * Destroy the {@code RowSet}.
+     */
+    public void destory() {
+        createdAt = null;
+        rowBucket.clear();
+        rowBucket = null;
+        callback = null;
+    }
 }

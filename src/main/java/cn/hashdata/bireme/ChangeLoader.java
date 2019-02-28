@@ -23,6 +23,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 
+import cn.hashdata.bireme.config.BiremeConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.postgresql.copy.CopyManager;
@@ -48,7 +49,7 @@ public class ChangeLoader implements Callable<Long> {
 
   protected boolean optimisticMode = true;
   protected Context cxt;
-  protected Config conf;
+  protected BiremeConfig conf;
   protected Connection conn;
   protected LinkedBlockingQueue<Future<LoadTask>> taskIn;
   protected Table table;

@@ -13,23 +13,26 @@ import java.util.HashMap;
  * {@link SourceConfig#pipeLines} are the {@link PipeLine}s that belong to this source.
  *
  * @author yuze
- *
  */
 public class SourceConfig {
-  public enum SourceType { MAXWELL, DEBEZIUM }
 
-  public String name;
-  public SourceType type;
-  public HashMap<String, String> tableMap;
-  public ArrayList<PipeLine> pipeLines;
+    public enum SourceType {
+        MAXWELL,
+        DEBEZIUM
+    }
 
-  // configuration for Kafka PipeLine
-  public String topic;
-  public String server;
-  public String groupID;
+    public String name;
+    public SourceType type;
+    public HashMap<String, String> tableMap;
+    public ArrayList<PipeLine> pipeLines;
 
-  public SourceConfig(String name) {
-    this.name = name;
-    this.pipeLines = new ArrayList<PipeLine>();
-  }
+    // configuration for Kafka PipeLine
+    public String topic;
+    public String server;
+    public String groupID;
+
+    public SourceConfig(String name) {
+        this.name = name;
+        this.pipeLines = new ArrayList<PipeLine>();
+    }
 }
