@@ -52,7 +52,7 @@ public class DebeziumPipeLine extends KafkaPipeLine {
             .collect(Collectors.toList());
     consumer.subscribe(Arrays.asList(topic));
 
-    logger = LogManager.getLogger("Bireme." + myName);
+    logger = LogManager.getLogger(DebeziumPipeLine.class);
     logger.info("Create new Debezium PipeLine. Name: {}", myName);
 
     if (topicPartition.size() > 1) {

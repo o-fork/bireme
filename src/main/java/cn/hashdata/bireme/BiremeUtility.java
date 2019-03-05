@@ -9,8 +9,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import cn.hashdata.bireme.Config.ConnectionConfig;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class BiremeUtility {
+
+    private static Logger logger= LogManager.getLogger(BiremeUtility.class);
   /**
    * Establish connection to database.
    *
@@ -52,8 +56,7 @@ public class BiremeUtility {
     }
 
     if (element == null) {
-      throw new BiremeException(
-          "Not found. Record does not have a field named \"" + fieldName + "\".\n");
+      return null;
     }
 
     if (element.isJsonNull()) {

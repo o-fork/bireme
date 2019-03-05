@@ -20,6 +20,10 @@ public class LoadTask {
   public ArrayList<CommitCallback> callbacks;
   public HashSet<String> delete;
   public HashMap<String, String> insert;
+  public String pgSql;//ddl语句
+  public Row.RowType type;//操作类型
+  public String fullTableName;
+  public boolean renameTable=false;//是否存在修改表名的sql
 
   /**
    * Create a new {@code LoadTask}.
@@ -37,5 +41,9 @@ public class LoadTask {
     callbacks.clear();
     delete.clear();
     insert.clear();
+    pgSql=null;
+    type = null;
+    fullTableName = null;
+    renameTable = false;
   }
 }

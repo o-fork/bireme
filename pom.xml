@@ -119,6 +119,12 @@
 			<artifactId>jetty-server</artifactId>
 			<version>9.4.7.v20170914</version>
 		</dependency>
+        <!-- druid -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid</artifactId>
+            <version>1.1.6</version>
+        </dependency>
 	</dependencies>
 
 	<build>

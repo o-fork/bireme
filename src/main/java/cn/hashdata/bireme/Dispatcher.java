@@ -9,6 +9,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import cn.hashdata.bireme.pipeline.PipeLine;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * A {@code Dispatcher} is binded with a {@code PipeLine}. It get the transform result and insert
@@ -18,6 +23,8 @@ import cn.hashdata.bireme.pipeline.PipeLine;
  *
  */
 public class Dispatcher {
+
+  private static Logger logger= LogManager.getLogger(Dispatcher.class);
   public Context cxt;
   public PipeLine pipeLine;
   public RowSet rowSet;
@@ -57,7 +64,7 @@ public class Dispatcher {
         try {
           rowSet = head.get();
         } catch (ExecutionException e) {
-          throw new BiremeException("Transform failed.\n", e.getCause());
+          throw new BiremeException("Transform failed.\n", e);
         }
 
         complete = insertRowSet();
@@ -82,13 +89,14 @@ public class Dispatcher {
     for (Entry<String, ArrayList<Row>> entry : entrySet) {
       String fullTableName = entry.getKey();
       ArrayList<Row> rows = entry.getValue();
-      RowCache rowCache = cache.get(fullTableName);
-
-      if (rowCache == null) {
-        rowCache = new RowCache(cxt, fullTableName, pipeLine);
-        cache.put(fullTableName, rowCache);
+      if(StringUtils.isBlank(fullTableName)){
+          continue;
       }
-
+      RowCache rowCache = cache.get(fullTableName);
+      if (rowCache == null) {
+          rowCache = new RowCache(cxt, fullTableName, pipeLine);
+          cache.put(fullTableName, rowCache);
+      }
       complete = rowCache.addRows(rows, rowSet.callback);
       if (!complete) {
         break;

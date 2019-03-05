@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -21,6 +22,8 @@ import cn.hashdata.bireme.CommitCallback;
 import cn.hashdata.bireme.Context;
 import cn.hashdata.bireme.Row;
 import cn.hashdata.bireme.RowSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * {@code KafkaPipeLine} is a kind of {@code PipeLine} that polls data from Kafka.
@@ -33,7 +36,6 @@ public abstract class KafkaPipeLine extends PipeLine {
 
   protected KafkaConsumer<String, String> consumer;
   protected LinkedBlockingQueue<KafkaCommitCallback> commitCallbacks;
-
   public KafkaPipeLine(Context cxt, SourceConfig conf, String myName) {
     super(cxt, conf, myName);
     consumer = KafkaPipeLine.createConsumer(conf.server, conf.groupID);
@@ -47,6 +49,7 @@ public abstract class KafkaPipeLine extends PipeLine {
     try {
       records = consumer.poll(POLL_TIMEOUT);
     } catch (InterruptException e) {
+        logger.debug("非阻碍性",e);
     }
 
     if (cxt.stop || records == null || records.isEmpty()) {
@@ -113,8 +116,12 @@ public abstract class KafkaPipeLine extends PipeLine {
         if (!transform(change, row)) {
           continue;
         }
-
-        addToRowSet(row, rowSet);
+          try {
+              MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+          } catch (Exception e1) {
+              logger.error("ddl语句执行出错",e1);
+          }
+          addToRowSet(row, rowSet);
         offsets.put(change.topic() + "+" + change.partition(), change.offset());
         callback.setNewestRecord(row.produceTime);
       }

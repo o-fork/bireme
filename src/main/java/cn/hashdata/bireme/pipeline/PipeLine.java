@@ -393,8 +393,13 @@ public abstract class PipeLine implements Callable<PipeLine> {
      * @return the Date/Time format
      */
     protected String decodeToTime(String data, int sqlType, int precision) {
+      if("0000-00-00 00:00:00".equals(data)){
+          data = "1970-02-01 00:00:00";
+      }else if("0000-00-00".equals(data)){
+          data = "1970-02-01";
+      }
       return data;
-    };
+    }
 
     /**
      * For Numeric type, {@code Transformer} need to decode the extracted string and transform it to
@@ -407,7 +412,7 @@ public abstract class PipeLine implements Callable<PipeLine> {
      */
     protected String decodeToNumeric(String data, int sqlType, int precision) {
       return data;
-    };
+    }
 
     /**
      * Add escape character to a data string.
@@ -424,7 +429,7 @@ public abstract class PipeLine implements Callable<PipeLine> {
         switch (c) {
           case 0x00:
             logger.warn("illegal character 0x00, deleted.");
-            continue;
+            break;
           case QUOTE:
           case ESCAPE:
             fieldStringBuilder.append(ESCAPE);

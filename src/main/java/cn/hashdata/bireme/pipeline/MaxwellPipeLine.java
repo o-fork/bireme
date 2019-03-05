@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.logging.log4j.LogManager;
 
@@ -28,7 +29,7 @@ public class MaxwellPipeLine extends KafkaPipeLine {
   public MaxwellPipeLine(Context cxt, SourceConfig conf, int id) {
     super(cxt, conf, "Maxwell-" + conf.name + "-" + conf.topic + "-" + id);
     consumer.subscribe(Arrays.asList(conf.topic));
-    logger = LogManager.getLogger("Bireme." + myName);
+    logger = LogManager.getLogger(MaxwellPipeLine.class);
     logger.info("Create new Maxwell Pipeline. Name: {}", myName);
   }
 
@@ -60,10 +61,15 @@ public class MaxwellPipeLine extends KafkaPipeLine {
       return record.dataSource + "." + record.database + "." + record.table;
     }
 
+    private String getFullTableName(MaxwellRecord record){
+        String newTable = record.newTable == null ? record.table : record.newTable;
+        return record.database + ".\"" + newTable+"\"";
+    }
+
     private boolean filter(MaxwellRecord record) {
       String fullTableName = record.dataSource + "." + record.database + "." + record.table;
 
-      if (!tableMap.containsKey(fullTableName)) {
+      if (!cxt.tableMap.containsKey(fullTableName)) {
         return true;
       }
 
@@ -80,30 +86,40 @@ public class MaxwellPipeLine extends KafkaPipeLine {
     @Override
     protected String decodeToBit(String data, int precision) {
       String binaryStr = Integer.toBinaryString(Integer.valueOf(data));
-      return String.format("%" + precision + "s", binaryStr).replace(' ', '0');
+      String flag="%" + precision + "s";
+      return String.format(flag, binaryStr).replace(' ', '0');
     }
 
     @Override
     public boolean transform(ConsumerRecord<String, String> change, Row row)
         throws BiremeException {
-      MaxwellRecord record = new MaxwellRecord(change.value());
-
-      if (filter(record)) {
-        return false;
+      String value=  change.value();
+      if(StringUtils.isBlank(value)){
+          return false;
       }
-
+      MaxwellRecord record = new MaxwellRecord(value);
+      //新建表/删除表时，不校验
+      if (filter(record)) {
+        if(record.type != RowType.TABLE_CREATE){
+            if(record.type != RowType.TABLE_DROP){
+                return false;
+            }
+        }
+      }
       Table table = cxt.tablesInfo.get(getMappedTableName(record));
 
       row.type = record.type;
       row.produceTime = record.produceTime;
-      row.originTable = getOriginTableName(record);
-      row.mappedTable = getMappedTableName(record);
-      row.keys = formatColumns(record, table, table.keyNames, false);
+
+      if(row.type == RowType.INSERT || row.type == RowType.UPDATE || row.type == RowType.DELETE ){
+          row.originTable = getOriginTableName(record);
+          row.mappedTable = getMappedTableName(record);
+          row.keys = formatColumns(record, table, table.keyNames, false);
+      }
 
       if (row.type == RowType.INSERT || row.type == RowType.UPDATE) {
         row.tuple = formatColumns(record, table, table.columnName, false);
       }
-
       if (row.type == RowType.UPDATE) {
         row.oldKeys = formatColumns(record, table, table.keyNames, true);
 
@@ -112,6 +128,36 @@ public class MaxwellPipeLine extends KafkaPipeLine {
         }
       }
 
+      // -----------------------------------------------
+      if (row.type == RowType.TABLE_ALTER){//新增，删除，修改 列
+           row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_ALTER,record,row);
+           row.originTable = getOriginTableName(record);
+           row.mappedTable = getMappedTableName(record);
+           row.tableFullName = getFullTableName(record);
+      }
+      if (row.type == RowType.TABLE_CREATE){//仅创建表
+          row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_CREATE,record,row);
+          row.tableFullName = getFullTableName(record);
+          //如果是创建表直接返回false。不在继续往下走。并直接创建新表
+//          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+//          return false;
+      }
+      if (row.type == RowType.TABLE_DROP){//仅删除表
+          row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.TABLE_DROP,record,row);
+          row.tableFullName = getFullTableName(record);
+//          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+//          return false;
+      }
+      if (row.type == RowType.DATABASE_CREATE){//创建库
+          row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.DATABASE_CREATE,record,row);
+//          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+//          return false;
+      }
+      if (row.type == RowType.DATABASE_DROP){//删除库
+          row.pgSql = MysqlToPgDdlUtil.tableAlter(RowType.DATABASE_CREATE,record,row);
+//          MysqlToPgDdlUtil.handleDDlTableSql(row,cxt);
+//          return false;
+      }
       return true;
     }
 
@@ -123,33 +169,58 @@ public class MaxwellPipeLine extends KafkaPipeLine {
       public RowType type;
       public JsonObject data;
       public JsonObject old;
+      public JsonObject def;//alter-table 时
+      public String sql;//alter-table 时
+      public String newTable;//修改表名是使用
 
       public MaxwellRecord(String changeValue) {
         JsonParser jsonParser = new JsonParser();
-        JsonObject value = (JsonObject) jsonParser.parse(changeValue);
-
+        JsonObject value = jsonParser.parse(changeValue).getAsJsonObject();
+        String typeDb=  value.get("type").getAsString();
         this.dataSource = getPipeLineName();
-        this.database = value.get("database").getAsString();
-        this.table = value.get("table").getAsString();
+        this.database = value.has("database") ? value.get("database").getAsString() : "";
+        this.table = value.has("table") ? value.get("table").getAsString():"";
         this.produceTime = value.get("ts").getAsLong() * 1000;
-        this.data = value.get("data").getAsJsonObject();
-
         if (value.has("old") && !value.get("old").isJsonNull()) {
-          this.old = value.get("old").getAsJsonObject();
+            this.old = value.get("old").getAsJsonObject();
         }
-
-        switch (value.get("type").getAsString()) {
+        if(value.has("data") && !value.get("data").isJsonNull()){
+            this.data = value.get("data").getAsJsonObject();
+        }
+        if(value.has("def") && !value.get("def").isJsonNull()){
+            this.def = value.get("def").getAsJsonObject();
+            if(this.def.has("table") && !this.def.get("table").isJsonNull()){
+                this.newTable = this.def.get("table").getAsString();
+            }
+        }
+        if(value.has("sql")){
+            this.sql = value.get("sql").getAsString();
+        }
+        switch (typeDb) {
           case "insert":
-            type = RowType.INSERT;
-            break;
-
+              type = RowType.INSERT;
+              break;
           case "update":
-            type = RowType.UPDATE;
-            break;
-
+              type = RowType.UPDATE;
+              break;
           case "delete":
-            type = RowType.DELETE;
-            break;
+              type = RowType.DELETE;
+              break;
+          case "table-drop":
+              type = RowType.TABLE_DROP;
+              break;
+          case "table-create":
+              type = RowType.TABLE_CREATE;
+              break;
+          case "table-alter":
+              type = RowType.TABLE_ALTER;
+              break;
+          case "database-create":
+              type = RowType.DATABASE_CREATE;
+              break;
+          case "database-drop":
+              type = RowType.DATABASE_DROP;
+              break;
         }
       }
 
@@ -162,9 +233,9 @@ public class MaxwellPipeLine extends KafkaPipeLine {
             field = BiremeUtility.jsonGetIgnoreCase(old, fieldName);
             return field;
           } catch (BiremeException ignore) {
+              logger.debug("非阻碍性",ignore);
           }
         }
-
         return BiremeUtility.jsonGetIgnoreCase(data, fieldName);
       }
     }

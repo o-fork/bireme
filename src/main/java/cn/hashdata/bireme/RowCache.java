@@ -14,6 +14,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import cn.hashdata.bireme.pipeline.PipeLine;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * An in-memory cache for {@link Row}. We use cache to merge and load change data in batch.
@@ -24,7 +27,7 @@ import cn.hashdata.bireme.pipeline.PipeLine;
  */
 public class RowCache {
   static final protected Long TIMEOUT_MS = 1000L;
-
+  private static Logger logger = LogManager.getLogger(RowCache.class);
   public Context cxt;
   public String tableName;
   public PipeLine pipeLine;
@@ -137,14 +140,13 @@ public class RowCache {
    */
   public void startLoad() throws BiremeException, InterruptedException {
     Future<LoadTask> head = mergeResult.peek();
-
     if (head != null && head.isDone()) {
       // get result of last load
       if (loadResult != null && loadResult.isDone()) {
         try {
           loadResult.get();
         } catch (ExecutionException e) {
-          throw new BiremeException("Loader failed. ", e.getCause());
+          throw new BiremeException("Loader failed. ", e);
         }
       }
 
@@ -185,6 +187,7 @@ public class RowCache {
         switch (row.type) {
           case INSERT:
             task.insert.put(row.keys, row.tuple);
+            task.type = Row.RowType.INSERT;
             break;
           case DELETE:
             if (task.insert.containsKey(row.keys)) {
@@ -192,6 +195,7 @@ public class RowCache {
             }
 
             task.delete.add(row.keys);
+            task.type = Row.RowType.DELETE;
             break;
           case UPDATE:
             if (row.oldKeys != null) {
@@ -205,6 +209,16 @@ public class RowCache {
               task.delete.add(row.keys);
               task.insert.put(row.keys, row.tuple);
             }
+            task.type = Row.RowType.UPDATE;
+            break;
+           case TABLE_ALTER:
+             if(StringUtils.isNotBlank(row.pgSql)){
+                task.pgSql = row.pgSql;
+                task.type = Row.RowType.TABLE_ALTER;
+                task.fullTableName = row.tableFullName;
+                task.renameTable = row.renameTable;
+             }
+               break;
         }
       }
 

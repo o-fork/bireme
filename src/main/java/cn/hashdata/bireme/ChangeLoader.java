@@ -4,7 +4,11 @@
 
 package cn.hashdata.bireme;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.sql.Connection;
@@ -23,6 +27,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 
+import cn.hashdata.bireme.pipeline.MysqlToPgDdlUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.postgresql.copy.CopyManager;
@@ -78,7 +83,7 @@ public class ChangeLoader implements Callable<Long> {
     this.mappedTable = mappedTable;
     this.table = cxt.tablesInfo.get(mappedTable);
     this.taskIn = taskIn;
-    this.copyThread = Executors.newFixedThreadPool(1, new ThreadFactory() {
+    this.copyThread = Executors.newFixedThreadPool(5, new ThreadFactory() {
       public Thread newThread(Runnable r) {
         Thread t = Executors.defaultThreadFactory().newThread(r);
         t.setDaemon(true);
@@ -114,8 +119,14 @@ public class ChangeLoader implements Callable<Long> {
         break;
       }
 
-      // get connection
-      conn = getConnection();
+      // get connection 重试三次，每次睡眠1.5秒
+      ConnectRetryEntry retryEntry=  RetryUtils.retryOnException(3, 1500, new Callable<ConnectRetryEntry>() {
+          @Override
+          public ConnectRetryEntry call() throws Exception {
+              return new ConnectRetryEntry(getConnection());
+          }
+      });
+      conn = retryEntry==null? null : retryEntry.getConnection();
       if (conn == null) {
         logger.debug("Unable to get Connection.");
         break;
@@ -124,19 +135,16 @@ public class ChangeLoader implements Callable<Long> {
       // Execute task and release connection. If failed, close the connection and abandon it.
       try {
         executeTask();
+        logger.info("----------------------------executeTask------------------------");
         releaseConnection();
       } catch (BiremeException e) {
-        logger.error("Fail to execute task. Message: {}", e.getMessage());
-
-        try {
-          conn.rollback();
-          conn.close();
-        } catch (Exception ignore) {
-          logger.error("Fail to roll back after load exception. Message: {}", e.getMessage());
-          throw e;
-        }
-        throw e;
-
+        logger.error("Fail to execute task. Message: {}", e);
+          try {
+              conn.rollback();
+              conn.close();
+          } catch (SQLException e1) {
+              logger.error(e1);
+          }
       } finally {
         currentTask.destory();
         currentTask = null;
@@ -163,7 +171,7 @@ public class ChangeLoader implements Callable<Long> {
       try {
         task = head.get();
       } catch (ExecutionException e) {
-        throw new BiremeException("Merge task failed.\n", e.getCause());
+        throw new BiremeException("Merge task failed.\n", e);
       }
     }
 
@@ -178,6 +186,7 @@ public class ChangeLoader implements Callable<Long> {
    */
   protected Connection getConnection() throws BiremeException {
     Connection connection = cxt.loaderConnections.poll();
+    logger.info("getConnection-- cxt.loaderConnections --- 剩余size:"+  cxt.loaderConnections.size());
     if (connection == null) {
       String message = "Unable to get Connection.";
       logger.fatal(message);
@@ -199,6 +208,7 @@ public class ChangeLoader implements Callable<Long> {
    */
   protected void releaseConnection() {
     cxt.loaderConnections.offer(conn);
+    logger.info("----------------------------releaseConnection----------------剩余size--------:"+cxt.loaderConnections.size());
     conn = null;
   }
 
@@ -209,6 +219,7 @@ public class ChangeLoader implements Callable<Long> {
    * @throws InterruptedException if interrupted while waiting
    */
   protected void executeTask() throws BiremeException, InterruptedException {
+
     if (!currentTask.delete.isEmpty() || (!optimisticMode && !currentTask.insert.isEmpty())) {
       int size = currentTask.delete.size();
 
@@ -229,6 +240,34 @@ public class ChangeLoader implements Callable<Long> {
       executeInsert(insertSet);
     }
 
+      //ddl语句
+      boolean success= false;
+      if(StringUtils.isNotBlank(currentTask.pgSql)){
+          logger.info("------------executeTask--------pgsql:"+currentTask.pgSql);
+          try {
+              success= MysqlToPgDdlUtil.executeDdlSql(conn,currentTask.pgSql);
+          } catch (Exception e) {
+              logger.error("ddl 执行异常，sql:{}",currentTask.pgSql,e);
+              throw new BiremeException("---ddl语句异常",e);
+          }
+          //如果ddl执行成功且表结构变化。要更新一下:this.table = cxt.tablesInfo.get(mappedTable);
+          if(success){
+              String fullTableName=currentTask.fullTableName;
+              String oldTableName=this.table.tableFullName;
+              try {
+                  logger.info("------------------更新表结构开始------beforeTable:{}-----afterTable:{}--------currentTask.renameTable--:{}",oldTableName,fullTableName,currentTask.renameTable);
+                  Table tableNew= MysqlToPgDdlUtil.reflushTableAfterDDl(fullTableName,conn,cxt);
+                  this.table = tableNew;
+                  if(currentTask.renameTable &&  (currentTask.type == Row.RowType.TABLE_ALTER)){//存在修改表名字的sql
+                      MysqlToPgDdlUtil.reflushConfigProperties(cxt,oldTableName,fullTableName,"maxwell1");
+                  }
+              } catch (Exception e) {
+                  logger.error("---ddl语句执行后，获取更新后的表结构异常：table:{}",fullTableName,e);
+                  throw new BiremeException("---ddl语句执行后，获取更新后的表结构异常",e);
+              }
+          }
+      }
+
     try {
       conn.commit();
     } catch (SQLException e) {
@@ -241,13 +280,14 @@ public class ChangeLoader implements Callable<Long> {
     }
   }
 
+
   private Long executeDelete(Set<String> delete) throws BiremeException, InterruptedException {
     long deleteCounts;
     ArrayList<String> keyNames = table.keyNames;
     String temporaryTableName = getTemporaryTableName();
 
     timerCTX = copyForDeleteTimer.time();
-    copyWorker(temporaryTableName, keyNames, delete);
+    copyWorker(temporaryTableName, keyNames, delete,"delete");
     timerCTX.stop();
 
     timerCTX = deleteTimer.time();
@@ -269,12 +309,13 @@ public class ChangeLoader implements Callable<Long> {
 
     timerCTX = copyForInsertTimer.time();
     try {
-      copyWorker(mappedTable, columnList, insertSet);
+      copyWorker(mappedTable, columnList, insertSet,"insert");
     } catch (BiremeException e) {
       if (e.getCause().getMessage().contains("duplicate key value") && optimisticMode) {
         try {
           conn.rollback();
         } catch (SQLException ignore) {
+            logger.debug("非阻碍性",ignore);
         }
 
         optimisticMode = false;
@@ -291,7 +332,7 @@ public class ChangeLoader implements Callable<Long> {
     timerCTX.stop();
   }
 
-  private Long copyWorker(String tableName, ArrayList<String> columnList, Set<String> tuples)
+  private Long copyWorker(String tableName, ArrayList<String> columnList, Set<String> tuples,String taskType)
       throws BiremeException, InterruptedException {
     Future<Long> copyResult;
     long copyCount = -1L;
@@ -307,7 +348,7 @@ public class ChangeLoader implements Callable<Long> {
 
     String sql = getCopySql(tableName, columnList);
     copyResult = copyThread.submit(new TupleCopyer(pipeIn, sql, conn));
-
+    logger.info("-copyWorker---------"+taskType+"---------sql:"+sql);
     try {
       tupleWriter(pipeOut, tuples);
     } catch (BiremeException e) {
@@ -321,13 +362,13 @@ public class ChangeLoader implements Callable<Long> {
 
       copyCount = copyResult.get();
     } catch (ExecutionException e) {
-      throw new BiremeException("Copy failed.", e.getCause());
+      throw new BiremeException("Copy failed.----------sql:"+sql, e);
     }
 
     if (temp != null) {
       throw temp;
     }
-
+    logger.info("---------copyWorker------------------------copyTime:"+copyCount+"ms");
     return copyCount;
   }
 
@@ -419,15 +460,60 @@ public class ChangeLoader implements Callable<Long> {
     public Long call() throws SQLException, IOException {
       try {
         CopyManager mgr = new CopyManager((BaseConnection) conn);
+        /*InputStream pileIn=  loggerSql(sql, pipeIn);
+        if(pileIn == null){
+            return 0L;
+        }*/
         return mgr.copyIn(sql, pipeIn);
       } finally {
         try {
           pipeIn.close();
         } catch (IOException ignore) {
+            logger.debug("非阻碍性",ignore);
         }
       }
     }
   }
+
+  public InputStream loggerSql(String sql,PipedInputStream pipeIn){
+      ByteArrayInputStream inputStream=null;
+      try {
+          byte[] bcache = new byte[1024];
+          int readSize = 0;//每次读取的字节长度
+          ByteArrayOutputStream infoStream = new ByteArrayOutputStream();
+          //一次性读取2048字节
+          while ((readSize = pipeIn.read(bcache)) > 0) {
+              //将bcache中读取的input数据写入infoStream
+              infoStream.write(bcache,0,readSize);
+          }
+          pipeIn.close();
+          inputStream=new ByteArrayInputStream(infoStream.toByteArray());
+          String sqlInfo= infoStream.toString("utf-8");
+          //判断 sql中的列数 是否与数据中的 列数一致。如果不一致，不同步。
+          if(StringUtils.isNotBlank(sql) && StringUtils.isNotBlank(sqlInfo)){
+             int sqlInt= search(sql,",");
+             int sqlInfoInt=search(sqlInfo,"|");
+             if(sqlInfoInt < sqlInt){
+                 logger.error("------CopyManager-----sqlInfoInt-|-:{},sqlInt-,-:{}",sqlInfoInt,sqlInt);
+                 return null;
+             }
+//              logger.error("------CopyManager-----sql:{},PipedInputStream:{}",sql,sqlInfo);
+          }
+      } catch (Exception e) {
+          logger.error("非阻碍",e);
+      }
+      return inputStream;
+  }
+
+    private static int search(String str,String strRes) {
+        int n=0;
+        while(str.indexOf(strRes)!=-1) {
+            int i = str.indexOf(strRes);
+            n++;
+            str = str.substring(i+1);
+        }
+        return n;
+    }
 
   private void tupleWriter(PipedOutputStream pipeOut, Set<String> tuples) throws BiremeException {
     byte[] data = null;
@@ -447,12 +533,13 @@ public class ChangeLoader implements Callable<Long> {
       try {
         pipeOut.close();
       } catch (IOException ignore) {
+          logger.debug("非阻碍性",ignore);
       }
     }
   }
 
   private String getTemporaryTableName() {
-    return mappedTable.replace('.', '_');
+    return mappedTable.replace('.', '_').replaceAll("\"","");
   }
 
   private void createTemporaryTable(Connection conn) throws BiremeException {
@@ -463,7 +550,7 @@ public class ChangeLoader implements Callable<Long> {
       conn.createStatement().executeUpdate(sql);
       conn.commit();
     } catch (SQLException e) {
-      throw new BiremeException("Fail to create tmporary table.", e);
+      throw new BiremeException("Fail to create tmporary table.--------sql:"+sql, e);
     }
   }
 }

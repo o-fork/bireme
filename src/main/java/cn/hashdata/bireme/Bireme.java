@@ -9,6 +9,7 @@ import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -58,7 +59,7 @@ public class Bireme implements Daemon {
   private DaemonContext context;
   private Context cxt;
 
-  private Logger logger = LogManager.getLogger("Bireme");
+  private Logger logger = LogManager.getLogger(Bireme.class);
 
   private ConsoleReporter consoleReporter;
   private JmxReporter jmxReporter;
@@ -94,6 +95,8 @@ public class Bireme implements Daemon {
 
     String config = cmd.getOptionValue("config_file", DEFAULT_CONFIG_FILE);
 
+    logger.info("--------config-----------:{}",config);
+
     cxt = new Context(new Config(config));
   }
 
@@ -109,7 +112,6 @@ public class Bireme implements Daemon {
 
     String[] strArray;
     Connection conn = BiremeUtility.jdbcConn(cxt.conf.targetDatabase);
-
     try {
       tableInfoMap = GetPrimaryKeys.getPrimaryKeys(cxt.tableMap, conn);
     } catch (Exception e) {
@@ -123,12 +125,20 @@ public class Bireme implements Daemon {
       }
 
       strArray = fullname.split("\\.");
-      cxt.tablesInfo.put(fullname, new Table(strArray[1], tableInfoMap, conn));
+//      logger.info("fullname:"+fullname+",------strArray:"+ Arrays.toString(strArray)+",---tableInfoMap:"+tableInfoMap+",---cxt.tablesInfo:"+cxt.tablesInfo);
+      /*
+       *Table 的参数。 配置文件中的 目标数据库数据。
+       * strArray[0]  库名：ttpai_boss_v1
+       * strArray[1]  表名："BOSS_ACCOUNT"   加上双引号的。
+       * tableInfoMap  ，查询目标数据库得到的，表名与主键的关系。如 {"ttpai_boss_v1." "BOSS_ACCOUNT" ":{id}}  注意表名有双引号
+       */
+      cxt.tablesInfo.put(fullname, new Table(strArray[0],strArray[1], tableInfoMap, conn));
     }
 
     try {
       conn.close();
     } catch (SQLException ignore) {
+        logger.debug("非阻碍性",ignore);
     }
 
     logger.info("Finish getting metadata of target tables from target database.");
@@ -140,7 +150,7 @@ public class Bireme implements Daemon {
    * @throws BiremeException fail to connect
    */
   protected void initLoaderConnections() throws BiremeException {
-    logger.info("Start establishing connections for loaders.");
+    logger.info("-------------------------Start initLoaderConnections for loaders.");
 
     LinkedBlockingQueue<Connection> conns = cxt.loaderConnections;
     HashMap<Connection, HashSet<String>> temporatyTables = cxt.temporaryTables;
@@ -159,17 +169,22 @@ public class Bireme implements Daemon {
         try {
           stmt.execute("set gp_autostats_mode = none;");
         } catch (SQLException ignore) {
+            logger.debug("非阻碍性",ignore);
         }
 
         conn.setAutoCommit(false);
         conns.add(conn);
         temporatyTables.put(conn, new HashSet<String>());
       }
+
+      logger.info("-------------------------cxt.loaderConnections ---init--- size:"+  conns.size());
     } catch (SQLException e) {
+        logger.error(e);
       for (Connection closeConn : temporatyTables.keySet()) {
         try {
           closeConn.close();
         } catch (SQLException ignore) {
+            logger.debug("非阻碍性",ignore);
         }
       }
 
@@ -313,7 +328,7 @@ public class Bireme implements Daemon {
     try {
       closeConnections();
     } catch (SQLException e) {
-      logger.warn(e.getMessage());
+        logger.error(e);
     }
 
     logger.info("Bireme exit");
@@ -337,7 +352,7 @@ public class Bireme implements Daemon {
       logger.fatal("Stack Trace: ", e);
       System.err.println(e.getMessage());
       e.printStackTrace();
-      System.exit(1);
+//      System.exit(1);
     }
 
     try {
@@ -353,7 +368,7 @@ public class Bireme implements Daemon {
     try {
       closeConnections();
     } catch (SQLException e) {
-      logger.warn(e.getMessage());
+      logger.error(e);
     }
 
     logger.info("Bireme exit");

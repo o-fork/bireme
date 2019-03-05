@@ -13,7 +13,7 @@ package cn.hashdata.bireme;
  *
  */
 public class Row {
-  public enum RowType { INSERT, UPDATE, DELETE }
+  public enum RowType { INSERT, UPDATE, DELETE,TABLE_ALTER,TABLE_DROP,TABLE_CREATE,DATABASE_CREATE,DATABASE_DROP }
 
   public Long produceTime;
   public RowType type;
@@ -22,4 +22,8 @@ public class Row {
   public String keys;
   public String oldKeys;
   public String tuple;
+
+  public String pgSql;//表结构修改sql
+  public String tableFullName;//表结构修改时，获取当前表的表名。
+  public Boolean renameTable=false;//存在表名修改的sql
 }
